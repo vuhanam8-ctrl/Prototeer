@@ -1,0 +1,12 @@
+{
+  "name": "prototeer",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs",
+    "test": "node --test tests.mjs",
+    "build": "node build-portable.mjs",
+    "package": "node package-portable.mjs",
+    "test:portable": "node --test portable-tests.mjs"
+  }
+}
