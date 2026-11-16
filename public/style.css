@@ -43,3 +43,5 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
 @media(max-width:720px){.left nav{display:flex;flex-direction:column;overflow:visible}.left .workspace-group-content>.nav{min-width:0}.brush-palette #zoneBrushes{display:block;overflow:visible}.brush-palette .zone-brush{width:100%;min-width:0}.left .brush-palette .section-title{display:flex}}
 
 .download-zip{display:inline-flex;align-items:center;padding:9px 12px;border:1px solid var(--line);border-radius:6px;text-decoration:none;color:var(--ink);font-size:14px}.download-zip:hover{background:#373d46}.download-zip[hidden]{display:none}
+
+.message-field-card{border:1px solid var(--line);border-radius:7px;padding:16px;margin:12px 0}.message-field-card>.form-grid{margin-bottom:10px}
