@@ -10,15 +10,29 @@ Save project uses IndexedDB in the current browser. Export downloads the full pr
 
 ## Develop and package
 
-Use the already installed Node.js; there are no dependencies to install.
+Use the already installed Node.js and pnpm workspace.
 
-- npm test: simulation, editor reconstruction and HTTP backend tests.
-- npm run test:portable: standalone build and browser-storage integration tests.
-- npm run build: regenerate the self-contained docs/dev/index.html.
-- npm run package: build the ZIP, extracted portable folder and clean GitHub upload folder.
-- npm run dev: optional local server with disk project saves in data/ at http://localhost:3000.
+- pnpm test: simulation, editor reconstruction, collaboration operations, analytics privacy and portable integration tests.
+- pnpm run test:portable: standalone build and browser-storage integration tests.
+- pnpm run build: regenerate the self-contained docs/dev/index.html.
+- pnpm run package: build the ZIP, extracted portable folder and clean GitHub upload folder.
+- pnpm run dev: optional local server with disk project saves in data/ at http://localhost:3000.
+- pnpm convex:dev: configure and develop the Convex backend.
+- pnpm convex:deploy: deploy the Convex functions after the developer has selected a Convex project.
 
-The portable build keeps the full editor and simulation. Cloud project storage is replaced with browser-local saves plus JSON files. The optional server retains disk-based storage. There is no cross-device sync or collaboration feature.
+The portable build keeps the full editor and simulation. With no Convex deployment URL it remains browser-local and makes no network requests. JSON import/export remains the portable recovery path.
+
+## Anonymous online projects
+
+The development source includes an optional Convex backend for desktop collaboration. Testers do not create accounts. An owner creates a shared project and receives an owner recovery download plus separate editor and viewer links. Access secrets stay in the URL fragment and only their SHA-256 digests are stored by Convex.
+
+Shared projects synchronize incremental board, definition, zone and graph edits; presence and remote board pointers are awareness only, so another person cannot move your camera, selection or open panels. Resource versions reject same-item stale edits instead of silently overwriting them. Full project checkpoints provide revisions. Uploaded artwork is preserved in snapshots and mirrored through Convex File Storage for live artwork changes.
+
+One leased browser controls a shared simulation timeline. Other browsers receive its frames; the editable project remains separate and becomes the starting point of the next run. Shared editing is intentionally desktop-only in this version.
+
+Interaction research is optional and consent-gated. It records allowlisted editor actions and aggregated click, pointer and scroll heatmap bins in separate tables. It rejects project descriptions, artwork, project JSON and access keys. Owners can export sanitized JSON or three CSV files and delete collected data. There is no AI analytics feature and mouse movement is not presented as eye tracking.
+
+To publish online mode, deploy `convex/`, then build with `PROTOTEER_CONVEX_URL` set to that deployment's `https://...convex.cloud` URL. Without that developer deployment step, the same build continues to work locally/offline.
 
 ## Website versions
 

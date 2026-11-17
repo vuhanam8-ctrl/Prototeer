@@ -12,8 +12,12 @@ Allowed movement zones are optional, selected per tool/creature, and support mul
 
 The complete example is rebuilt from New canvas using actual editor controls in tests. The standalone ZIP includes editable source/ files as well as the runnable HTML. Browser-stored user projects must be exported as JSON separately.
 
-## Discussed but not implemented
+## Online development implementation
 
-The user wants clearer editor language and visible data connections. Research suggested consistent Message name instead of alternating message/input; Message data for fields; selectable typed connections rather than retyping field names; and contextual controls showing relevant settings. These are proposals, not implemented or blanket authorization to redesign the UI. Preserve standard game-development terms where useful.
+Convex-backed anonymous online projects are implemented in `convex/` and the browser-global collaboration modules. They require a developer-owned Convex deployment and a `PROTOTEER_CONVEX_URL` at build time before the public GitHub Pages build can connect. Testers do not sign up. Owner/editor/viewer access uses high-entropy fragment links; only token digests are stored. Collaboration is desktop-only.
 
-Convex, realtime collaboration, interaction analytics, heatmaps, eye tracking, engine export adapters and a community marketplace remain future ideas. Keep portability in mind without claiming those features exist.
+Online data uses chunked project checkpoints, resource-versioned incremental operations, live presence, mergeable zone painting, saved revisions, Convex File Storage, and a leased authoritative browser for shared simulation frames. Camera, zoom, selection and panels stay local. The engine does not import Convex.
+
+Consent-gated interaction analytics and aggregated UI/board heatmap bins are implemented separately from projects and simulation. Owners can export JSON/CSV or delete the data. No AI analytics or eye tracking is implemented.
+
+The user also wants clearer editor language and visible data connections. Existing changes use Message data instead of vague field wording in the behavior editor. Broader terminology changes are not blanket authorization to redesign the UI; preserve standard game-development terms where useful. Engine export adapters and a community marketplace remain future work.

@@ -4,10 +4,15 @@
   "type": "module",
   "scripts": {
     "dev": "node server.mjs",
-    "test": "node --test tests.mjs message-tests.mjs portable-tests.mjs",
+    "test": "node --test tests.mjs message-tests.mjs portable-tests.mjs collaboration-tests.mjs analytics-tests.mjs backend-contract-tests.mjs",
     "benchmark": "node benchmark.mjs",
     "build": "node build-portable.mjs",
     "package": "node package-portable.mjs",
-    "test:portable": "node --test portable-tests.mjs"
+    "test:portable": "node --test portable-tests.mjs",
+    "convex:dev": "convex dev",
+    "convex:deploy": "convex deploy"
+  },
+  "dependencies": {
+    "convex": "^1.50.0"
   }
 }

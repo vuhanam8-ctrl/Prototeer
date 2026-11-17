@@ -38,7 +38,7 @@ Projects record messageSchema: 1. Definitions and payloads are ordinary versione
 
 ## Test coverage
 
-The tests cover independent field types/readers, explicit positions, mission-only absence of source data, UI editing, full reconstruction of the demo through editor controls, old-save migration, debug independence, persistence and replay. No Convex, eye tracking or analytics has been added.
+The tests cover independent field types/readers, explicit positions, mission-only absence of source data, UI editing, full reconstruction of the demo through editor controls, old-save migration, debug independence, persistence and replay. Convex collaboration and optional analytics live outside the engine: collaboration serializes the same validated project data, while analytics accepts only allowlisted UI metadata and never message payloads, project descriptions or artwork. No eye tracking has been added.
 
 ## Navigation boundary
 
