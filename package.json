@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "node server.mjs",
     "test": "node --test tests.mjs message-tests.mjs portable-tests.mjs",
+    "benchmark": "node benchmark.mjs",
     "build": "node build-portable.mjs",
     "package": "node package-portable.mjs",
     "test:portable": "node --test portable-tests.mjs"
