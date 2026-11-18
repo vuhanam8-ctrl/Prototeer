@@ -37,7 +37,7 @@ Customer usage collection is optional and consent-gated. When the Convex URL is 
 `docs/dev/analytics-admin.html` is an unlinked, `noindex` owner desk for reading the raw Convex sessions, events and heatmap-bin tables. It paginates records, supports backend filters, exports bounded JSON/CSV files and can delete analytics. It never accepts shared-project owner/editor/viewer links. Access requires a separate high-entropy analytics admin key held only in memory by the page.
 
 1. Run `pnpm analytics:key`. Keep the printed admin key private and retain the printed SHA-256 digest.
-2. After selecting the Convex deployment, set `PROTOTEER_ANALYTICS_ADMIN_SHA256` to that digest with `pnpm exec convex env set PROTOTEER_ANALYTICS_ADMIN_SHA256` or through Convex deployment settings.
+2. After selecting the Convex project, set `PROTOTEER_ANALYTICS_ADMIN_SHA256` to that digest on production with `pnpm exec convex env set PROTOTEER_ANALYTICS_ADMIN_SHA256 --prod` or through the production deployment settings.
 3. Deploy `convex/`, then build/package with `PROTOTEER_CONVEX_URL` set to the deployment's `https://...convex.cloud` URL.
 4. Open `/Prototeer/dev/analytics-admin.html` directly and enter the deployment URL and private raw key. The key is never stored in the page URL or browser storage.
 
