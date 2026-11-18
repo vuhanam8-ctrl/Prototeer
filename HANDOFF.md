@@ -18,6 +18,6 @@ Convex-backed anonymous online projects are implemented in `convex/` and the bro
 
 Online data uses chunked project checkpoints, resource-versioned incremental operations, live presence, mergeable zone painting, saved revisions, Convex File Storage, and a leased authoritative browser for shared simulation frames. Camera, zoom, selection and panels stay local. The engine does not import Convex.
 
-Consent-gated interaction analytics and aggregated UI/board heatmap bins are implemented separately from projects and simulation. Owners can export JSON/CSV or delete the data. No AI analytics or eye tracking is implemented.
+Consent-gated interaction analytics and aggregated UI/board heatmap bins are implemented site-wide and separately from projects and simulation. Customers see only the consent choice and their normal project export; shared-project roles cannot read, export or delete analytics. The unlinked `analytics-admin.html` desk pages through raw records and gates reads, JSON/CSV export and deletion with the separate deployment admin key configured by `PROTOTEER_ANALYTICS_ADMIN_SHA256`. No AI analytics or eye tracking is implemented.
 
 The user also wants clearer editor language and visible data connections. Existing changes use Message data instead of vague field wording in the behavior editor. Broader terminology changes are not blanket authorization to redesign the UI; preserve standard game-development terms where useful. Engine export adapters and a community marketplace remain future work.

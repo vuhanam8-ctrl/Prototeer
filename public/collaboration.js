@@ -630,11 +630,10 @@
     }
 
     function analyticsTransport() {
+      if (!client) return null;
       return {
         startSession(session) {
-          if (!active) return Promise.reject(new Error('project_not_open'));
           return client.mutation(apiRoot.analytics.startSession, {
-            ...credentials(),
             sessionId: session.sessionId,
             participantId: session.participantId,
             consentVersion: session.consentVersion,
@@ -644,54 +643,24 @@
             dpr: session.dpr,
           });
         },
-        batch(events) {
+        async batch(events) {
           if (!events?.length) return Promise.resolve();
-          return client.mutation(apiRoot.analytics.ingestEvents, { ...credentials(), sessionId: events[0].sessionId, events });
+          for (let index = 0; index < events.length; index += 50) {
+            const chunk = events.slice(index, index + 50);
+            await client.mutation(apiRoot.analytics.ingestEvents, { sessionId: chunk[0].sessionId, events: chunk });
+          }
         },
-        batchHeatmap(bins) {
+        async batchHeatmap(bins) {
           if (!bins?.length) return Promise.resolve();
-          return client.mutation(apiRoot.analytics.ingestHeatmap, { ...credentials(), sessionId: bins[0].sessionId, batchId: randomKey(18), bins });
+          for (let index = 0; index < bins.length; index += 200) {
+            const chunk = bins.slice(index, index + 200);
+            await client.mutation(apiRoot.analytics.ingestHeatmap, { sessionId: chunk[0].sessionId, batchId: randomKey(18), bins: chunk });
+          }
         },
         endSession(info) {
-          if (!active) return Promise.resolve();
-          return client.mutation(apiRoot.analytics.endSession, { ...credentials(), sessionId: info.sessionId });
+          return client.mutation(apiRoot.analytics.endSession, { sessionId: info.sessionId });
         },
       };
-    }
-
-    async function exportPage(functionReference, extra = {}) {
-      const rows = [];
-      let cursor = null;
-      for (let page = 0; page < 200; page++) {
-        const result = await client.query(functionReference, { ...credentials(), ...extra, paginationOpts: { numItems: 500, cursor } });
-        rows.push(...result.page);
-        if (result.isDone) return rows;
-        cursor = result.continueCursor;
-      }
-      throw new Error('analytics_export_too_large');
-    }
-
-    async function exportAnalytics(filters = {}) {
-      requireClient();
-      if (role !== 'owner') throw new Error('owner_access_required');
-      const [sessions, events, heatmap] = await Promise.all([
-        exportPage(apiRoot.analytics.exportSessions),
-        exportPage(apiRoot.analytics.exportEvents, filters),
-        exportPage(apiRoot.analytics.exportHeatmap, filters),
-      ]);
-      return { sessions, events, heatmap };
-    }
-
-    async function deleteAnalytics() {
-      requireClient();
-      if (role !== 'owner') throw new Error('owner_access_required');
-      let deleted = 0;
-      for (let page = 0; page < 200; page++) {
-        const result = await client.mutation(apiRoot.analytics.clear, credentials());
-        deleted += result.deleted;
-        if (!result.more) return { deleted };
-      }
-      throw new Error('analytics_delete_incomplete');
     }
 
     function shareInfo() {
@@ -804,8 +773,6 @@
       restoreRevision,
       recoveryData,
       analyticsTransport,
-      exportAnalytics,
-      deleteAnalytics,
       listKnownProjects,
       openKnown,
       leave,

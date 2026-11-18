@@ -7,6 +7,7 @@
     "editor_completed",
     "editor_cancelled",
     "editor_abandoned",
+    "control_clicked",
     "control_changed",
     "board_mode_changed",
     "board_stroke",
@@ -43,7 +44,6 @@
     "dialog",
     "projects",
     "share",
-    "analytics",
     "header",
     "unknown",
   ]);
@@ -92,7 +92,7 @@
   const X_BINS = 32;
   const Y_BINS = 18;
   const EVENT_FIELDS = new Set([
-    "schemaVersion", "eventId", "projectId", "sessionId", "sequence", "occurredAt", "uiVersion",
+    "schemaVersion", "eventId", "sessionId", "sequence", "occurredAt", "uiVersion",
     "kind", "surface", "panel", "controlId", "flow", "result", "durationMs",
     "viewportWidth", "viewportHeight", "dpr", "context",
   ]);
@@ -145,7 +145,7 @@
   function sanitizeEvent(input, options = {}) {
     if (!input || typeof input !== "object" || !EVENT_KINDS.includes(input.kind)) return null;
     if (Object.keys(input).some((key) => !EVENT_FIELDS.has(key))) return null;
-    if (!safeId(input.eventId) || !safeId(input.sessionId) || !safeId(input.projectId)) return null;
+    if (!safeId(input.eventId) || !safeId(input.sessionId)) return null;
     if (!Number.isInteger(input.sequence) || input.sequence < 0 || input.sequence > 1000000000) return null;
     if (!finiteNumber(input.occurredAt, 0, 9007199254740991) || !safeVersion(input.uiVersion)) return null;
     if (!SURFACES.includes(input.surface) || !PANELS.includes(input.panel)) return null;
@@ -162,7 +162,6 @@
     return {
       schemaVersion: 1,
       eventId: input.eventId,
-      projectId: input.projectId,
       sessionId: input.sessionId,
       sequence: input.sequence,
       occurredAt: input.occurredAt,
@@ -233,7 +232,6 @@
 
   function createAnalytics(options = {}) {
     const transport = options.transport ?? {};
-    const projectId = options.projectId;
     const sessionId = options.sessionId ?? randomId("session");
     const participantId = options.participantId ?? randomId("participant");
     const uiVersion = options.uiVersion ?? "dev";
@@ -241,6 +239,9 @@
     const allowedControls = new Set(options.allowedControls ?? []);
     const now = typeof options.now === "function" ? options.now : Date.now;
     const getViewport = typeof options.viewport === "function" ? options.viewport : defaultViewport;
+    const intervalMs = Number(options.flushIntervalMs ?? 5000);
+    const setIntervalFn = options.setIntervalFn ?? (root.document ? root.setInterval?.bind(root) : null);
+    const clearIntervalFn = options.clearIntervalFn ?? root.clearInterval?.bind(root);
     let consent = options.consent === true;
     let sequence = 0;
     let started = false;
@@ -248,9 +249,26 @@
     let flushing = false;
     let destroyed = false;
     let activeFlow = null;
+    let timer = null;
     const events = [];
     const bins = new Map();
     const lastSamples = new Map();
+
+    function allowControl(value) {
+      if (!safeId(value, 80)) return false;
+      allowedControls.add(value);
+      return true;
+    }
+
+    function syncTimer() {
+      if (consent && !destroyed && !timer && setIntervalFn && intervalMs > 0) {
+        timer = setIntervalFn(() => { void flush(); }, intervalMs);
+        if (timer && typeof timer.unref === "function") timer.unref();
+      } else if ((!consent || destroyed) && timer && clearIntervalFn) {
+        clearIntervalFn(timer);
+        timer = null;
+      }
+    }
 
     function safeCall(name, value) {
       if (typeof transport[name] !== "function") return Promise.resolve(true);
@@ -264,12 +282,11 @@
     function startSession() {
       if (started) return Promise.resolve(true);
       if (startPromise) return startPromise;
-      if (!consent || destroyed || !safeId(projectId) || !safeId(sessionId) || !safeId(participantId) || !safeVersion(uiVersion)) return Promise.resolve(false);
+      if (!consent || destroyed || !safeId(sessionId) || !safeId(participantId) || !safeVersion(uiVersion)) return Promise.resolve(false);
       const size = viewport(getViewport());
       if (!size) return Promise.resolve(false);
       startPromise = safeCall("startSession", {
         schemaVersion: 1,
-        projectId,
         sessionId,
         participantId,
         consentVersion,
@@ -295,7 +312,6 @@
       const candidate = sanitizeEvent({
         schemaVersion: 1,
         eventId: randomId("event"),
-        projectId,
         sessionId,
         sequence: sequence + 1,
         occurredAt: now(),
@@ -439,6 +455,7 @@
 
     function setConsent(value) {
       consent = value === true;
+      syncTimer();
       if (consent) void startSession();
       else {
         events.length = 0;
@@ -452,17 +469,14 @@
       if (activeFlow) abandonFlow();
       await flush();
       destroyed = true;
-      if (started) await safeCall("endSession", { projectId, sessionId, endedAt: now() });
+      if (started) await safeCall("endSession", { sessionId, endedAt: now() });
     }
 
-    const intervalMs = Number(options.flushIntervalMs ?? 2000);
-    const setIntervalFn = options.setIntervalFn ?? (root.document ? root.setInterval?.bind(root) : null);
-    const clearIntervalFn = options.clearIntervalFn ?? root.clearInterval?.bind(root);
-    const timer = setIntervalFn && intervalMs > 0 ? setIntervalFn(() => { void flush(); }, intervalMs) : null;
-    if (timer && typeof timer.unref === "function") timer.unref();
+    syncTimer();
 
     return Object.freeze({
       record,
+      allowControl,
       sampleHeatmap,
       beginFlow,
       completeFlow,
@@ -472,80 +486,13 @@
       setConsent,
       hasConsent: () => consent,
       pendingCounts: () => ({ events: events.length, bins: bins.size }),
-      session: () => ({ projectId, sessionId, participantId, uiVersion, consentVersion }),
+      session: () => ({ sessionId, participantId, uiVersion, consentVersion }),
       destroy: async () => {
         if (timer && clearIntervalFn) clearIntervalFn(timer);
+        timer = null;
         await destroy();
       },
     });
-  }
-
-  function cleanSession(input) {
-    if (!input || !safeId(input.sessionId) || !safeId(input.participantId) || !safeVersion(input.uiVersion)) return null;
-    const size = viewport({ width: input.viewportWidth, height: input.viewportHeight, dpr: input.dpr });
-    if (!size || !Number.isInteger(input.consentVersion) || !finiteNumber(input.startedAt, 0, 9007199254740991)) return null;
-    if (input.endedAt !== undefined && !finiteNumber(input.endedAt, input.startedAt, 9007199254740991)) return null;
-    return {
-      sessionId: input.sessionId,
-      participantId: input.participantId,
-      consentVersion: input.consentVersion,
-      uiVersion: input.uiVersion,
-      viewportWidth: size.width,
-      viewportHeight: size.height,
-      dpr: size.dpr,
-      startedAt: input.startedAt,
-      ...(input.endedAt === undefined ? {} : { endedAt: input.endedAt }),
-    };
-  }
-
-  function analyticsExport(data, filters = {}, options = {}) {
-    const allowedControls = new Set(options.allowedControls ?? []);
-    const selected = (row) => {
-      if (filters.sessionId && row.sessionId !== filters.sessionId) return false;
-      if (filters.uiVersion && row.uiVersion !== filters.uiVersion) return false;
-      if (filters.surface && row.surface !== filters.surface) return false;
-      if (filters.panel && row.panel !== filters.panel) return false;
-      if (filters.kind && row.kind !== filters.kind) return false;
-      const timestamp = row.occurredAt ?? row.startedAt;
-      if (filters.from !== undefined && timestamp < filters.from) return false;
-      if (filters.to !== undefined && timestamp > filters.to) return false;
-      return true;
-    };
-    return {
-      schemaVersion: 1,
-      generatedAt: Number(options.generatedAt ?? Date.now()),
-      filters: {
-        ...(safeId(filters.sessionId ?? "") ? { sessionId: filters.sessionId } : {}),
-        ...(safeVersion(filters.uiVersion ?? "") ? { uiVersion: filters.uiVersion } : {}),
-        ...(SURFACES.includes(filters.surface) ? { surface: filters.surface } : {}),
-        ...(PANELS.includes(filters.panel) ? { panel: filters.panel } : {}),
-        ...(EVENT_KINDS.includes(filters.kind) || HEATMAP_KINDS.includes(filters.kind) ? { kind: filters.kind } : {}),
-        ...(finiteNumber(filters.from, 0, 9007199254740991) ? { from: filters.from } : {}),
-        ...(finiteNumber(filters.to, 0, 9007199254740991) ? { to: filters.to } : {}),
-      },
-      sessions: (data?.sessions ?? []).map(cleanSession).filter(Boolean).filter(selected),
-      events: (data?.events ?? []).map((item) => sanitizeEvent(item, { allowedControls })).filter(Boolean).filter(selected),
-      heatmap: (data?.heatmap ?? []).map(sanitizeHeatmapBin).filter(Boolean).filter(selected),
-    };
-  }
-
-  function csvCell(value) {
-    if (value === undefined || value === null) return "";
-    const text = typeof value === "object" ? JSON.stringify(value) : String(value);
-    return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-  }
-
-  function rowsToCsv(rows, fields) {
-    return [fields.join(","), ...rows.map((row) => fields.map((field) => csvCell(row[field])).join(","))].join("\r\n");
-  }
-
-  function analyticsCsv(data, filters = {}, options = {}) {
-    const clean = analyticsExport(data, filters, options);
-    return {
-      sessions: rowsToCsv(clean.sessions, ["sessionId", "participantId", "consentVersion", "uiVersion", "viewportWidth", "viewportHeight", "dpr", "startedAt", "endedAt"]),
-      events: rowsToCsv(clean.events, ["eventId", "sessionId", "sequence", "occurredAt", "uiVersion", "kind", "surface", "panel", "controlId", "flow", "result", "durationMs", "viewportWidth", "viewportHeight", "dpr", "context"]),
-      heatmap: rowsToCsv(clean.heatmap, ["sessionId", "uiVersion", "surface", "panel", "kind", "xBin", "yBin", "viewportBucket", "pointerType", "count", "occurredAt"]),
-    };
   }
 
   root.PrototeerAnalytics = Object.freeze({
@@ -560,7 +507,5 @@
     sanitizeEvent,
     sanitizeHeatmapBin,
     createAnalytics,
-    analyticsExport,
-    analyticsCsv,
   });
 })(globalThis);

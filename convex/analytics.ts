@@ -2,7 +2,7 @@ import { internalMutation, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { requireAccess, requireOwner, safeSessionId } from "./lib/access";
+import { safeSessionId } from "./lib/access";
 
 const MAX_EVENTS_PER_BATCH = 50;
 const MAX_HEATMAP_BINS_PER_BATCH = 200;
@@ -11,6 +11,8 @@ const MAX_EVENTS_PER_SESSION = 5_000;
 const MAX_HEATMAP_SAMPLES_PER_SESSION = 100_000;
 const MAX_SESSIONS_PER_HOUR = 20;
 const RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+const ADMIN_HASH_ENV = "PROTOTEER_ANALYTICS_ADMIN_SHA256";
+const textEncoder = new TextEncoder();
 
 const EVENT_KINDS = new Set([
   "panel_opened",
@@ -18,6 +20,7 @@ const EVENT_KINDS = new Set([
   "editor_completed",
   "editor_cancelled",
   "editor_abandoned",
+  "control_clicked",
   "control_changed",
   "board_mode_changed",
   "board_stroke",
@@ -41,7 +44,6 @@ const EVENT_KINDS = new Set([
 ]);
 
 const PANELS = new Set([
-  "analytics",
   "behavior-tree",
   "board",
   "creatures",
@@ -136,7 +138,6 @@ const POINTER_TYPES = new Set(["mouse", "pen", "touch", "unknown"]);
 const eventValidator = v.object({
   schemaVersion: v.number(),
   eventId: v.string(),
-  projectId: v.string(),
   sessionId: v.string(),
   sequence: v.number(),
   occurredAt: v.number(),
@@ -170,6 +171,39 @@ const heatmapValidator = v.object({
 
 function integer(value: number, min: number, max: number) {
   return Number.isInteger(value) && value >= min && value <= max;
+}
+
+async function sha256Hex(value: string) {
+  const bytes = await crypto.subtle.digest("SHA-256", textEncoder.encode(value));
+  return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function sameDigest(left: string, right: string) {
+  if (left.length !== right.length) return false;
+  let difference = 0;
+  for (let index = 0; index < left.length; index++) {
+    difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  }
+  return difference === 0;
+}
+
+async function requireAnalyticsAdmin(adminKey: string) {
+  const expected = process.env[ADMIN_HASH_ENV]?.trim().toLowerCase();
+  if (!expected || !/^[a-f0-9]{64}$/.test(expected)) {
+    throw new ConvexError({ code: "analytics_admin_not_configured" });
+  }
+  if (
+    typeof adminKey !== "string" ||
+    adminKey.length < 43 ||
+    adminKey.length > 256 ||
+    !/^[A-Za-z0-9_-]+$/.test(adminKey)
+  ) {
+    throw new ConvexError({ code: "analytics_admin_denied" });
+  }
+  const actual = await sha256Hex(adminKey);
+  if (!sameDigest(actual, expected)) {
+    throw new ConvexError({ code: "analytics_admin_denied" });
+  }
 }
 
 function safeParticipantId(value: string) {
@@ -258,10 +292,9 @@ function sanitizeContext(value: unknown) {
 function sanitizeEvent(
   event: typeof eventValidator.type,
   now: number,
-  publicId: string,
   sessionId: string,
 ) {
-  if (event.schemaVersion !== 1 || event.projectId !== publicId || event.sessionId !== sessionId) {
+  if (event.schemaVersion !== 1 || event.sessionId !== sessionId) {
     throw new ConvexError({ code: "invalid_analytics_event" });
   }
   if (!/^[A-Za-z0-9_-]{12,120}$/.test(event.eventId)) {
@@ -288,7 +321,7 @@ function sanitizeEvent(
   ) {
     throw new ConvexError({ code: "invalid_analytics_duration" });
   }
-  const { projectId: _projectId, sessionId: _sessionId, ...storedEvent } = event;
+  const { sessionId: _sessionId, ...storedEvent } = event;
   return {
     ...storedEvent,
     controlId,
@@ -331,10 +364,18 @@ function checkPagination(numItems: number) {
   if (!integer(numItems, 1, 500)) throw new ConvexError({ code: "invalid_export_page_size" });
 }
 
+function checkTimeRange(from: number | undefined, to: number | undefined) {
+  if (
+    (from !== undefined && !integer(from, 0, 9_000_000_000_000)) ||
+    (to !== undefined && !integer(to, 0, 9_000_000_000_000)) ||
+    (from !== undefined && to !== undefined && from > to)
+  ) {
+    throw new ConvexError({ code: "invalid_analytics_filter" });
+  }
+}
+
 export const startSession = mutation({
   args: {
-    publicId: v.string(),
-    token: v.string(),
     sessionId: v.string(),
     participantId: v.string(),
     consentVersion: v.number(),
@@ -351,12 +392,9 @@ export const startSession = mutation({
     if (!integer(args.consentVersion, 1, 100)) {
       throw new ConvexError({ code: "analytics_consent_required" });
     }
-    const { project } = await requireAccess(ctx, args.publicId, args.token);
     const existing = await ctx.db
       .query("analyticsSessions")
-      .withIndex("by_project_session", (q) =>
-        q.eq("projectId", project._id).eq("sessionId", args.sessionId),
-      )
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
       .unique();
     if (existing) {
       if (existing.participantId !== args.participantId) {
@@ -377,15 +415,14 @@ export const startSession = mutation({
     const now = Date.now();
     const recentSessions = await ctx.db
       .query("analyticsSessions")
-      .withIndex("by_project_started", (q) =>
-        q.eq("projectId", project._id).gt("startedAt", now - 60 * 60 * 1000),
+      .withIndex("by_participant_started", (q) =>
+        q.eq("participantId", args.participantId).gt("startedAt", now - 60 * 60 * 1000),
       )
       .take(MAX_SESSIONS_PER_HOUR + 1);
     if (recentSessions.length >= MAX_SESSIONS_PER_HOUR) {
       throw new ConvexError({ code: "analytics_rate_limited" });
     }
     await ctx.db.insert("analyticsSessions", {
-      projectId: project._id,
       sessionId: args.sessionId,
       participantId: args.participantId,
       consentVersion: args.consentVersion,
@@ -404,15 +441,12 @@ export const startSession = mutation({
 });
 
 export const endSession = mutation({
-  args: { publicId: v.string(), token: v.string(), sessionId: v.string() },
+  args: { sessionId: v.string() },
   handler: async (ctx, args) => {
     safeSessionId(args.sessionId);
-    const { project } = await requireAccess(ctx, args.publicId, args.token);
     const session = await ctx.db
       .query("analyticsSessions")
-      .withIndex("by_project_session", (q) =>
-        q.eq("projectId", project._id).eq("sessionId", args.sessionId),
-      )
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
       .unique();
     if (!session) return { ended: false };
     const now = Date.now();
@@ -423,8 +457,6 @@ export const endSession = mutation({
 
 export const ingestEvents = mutation({
   args: {
-    publicId: v.string(),
-    token: v.string(),
     sessionId: v.string(),
     events: v.array(eventValidator),
   },
@@ -436,19 +468,16 @@ export const ingestEvents = mutation({
     if (new TextEncoder().encode(JSON.stringify(args.events)).length > MAX_BATCH_BYTES) {
       throw new ConvexError({ code: "analytics_batch_too_large" });
     }
-    const { project } = await requireAccess(ctx, args.publicId, args.token);
     const session = await ctx.db
       .query("analyticsSessions")
-      .withIndex("by_project_session", (q) =>
-        q.eq("projectId", project._id).eq("sessionId", args.sessionId),
-      )
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
       .unique();
     if (!session || session.endedAt !== undefined) {
       throw new ConvexError({ code: "analytics_session_not_active" });
     }
     const now = Date.now();
     const events = args.events
-      .map((event) => sanitizeEvent(event, now, args.publicId, args.sessionId))
+      .map((event) => sanitizeEvent(event, now, args.sessionId))
       .sort((a, b) => a.sequence - b.sequence);
     let lastSequence = session.lastSequence;
     let accepted = 0;
@@ -456,9 +485,7 @@ export const ingestEvents = mutation({
     for (const event of events) {
       const duplicate = await ctx.db
         .query("analyticsEvents")
-        .withIndex("by_project_event", (q) =>
-          q.eq("projectId", project._id).eq("eventId", event.eventId),
-        )
+        .withIndex("by_event", (q) => q.eq("eventId", event.eventId))
         .unique();
       if (duplicate) {
         if (duplicate.sessionId !== args.sessionId || duplicate.sequence !== event.sequence) {
@@ -474,7 +501,6 @@ export const ingestEvents = mutation({
         throw new ConvexError({ code: "analytics_session_limit_reached" });
       }
       await ctx.db.insert("analyticsEvents", {
-        projectId: project._id,
         sessionId: args.sessionId,
         ...event,
       });
@@ -492,8 +518,6 @@ export const ingestEvents = mutation({
 
 export const ingestHeatmap = mutation({
   args: {
-    publicId: v.string(),
-    token: v.string(),
     sessionId: v.string(),
     batchId: v.string(),
     bins: v.array(heatmapValidator),
@@ -507,20 +531,17 @@ export const ingestHeatmap = mutation({
     if (new TextEncoder().encode(JSON.stringify(args.bins)).length > MAX_BATCH_BYTES) {
       throw new ConvexError({ code: "analytics_batch_too_large" });
     }
-    const { project } = await requireAccess(ctx, args.publicId, args.token);
     const session = await ctx.db
       .query("analyticsSessions")
-      .withIndex("by_project_session", (q) =>
-        q.eq("projectId", project._id).eq("sessionId", args.sessionId),
-      )
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
       .unique();
     if (!session || session.endedAt !== undefined) {
       throw new ConvexError({ code: "analytics_session_not_active" });
     }
     const duplicateBatch = await ctx.db
       .query("analyticsBatches")
-      .withIndex("by_project_session_batch", (q) =>
-        q.eq("projectId", project._id).eq("sessionId", args.sessionId).eq("batchId", args.batchId),
+      .withIndex("by_session_batch", (q) =>
+        q.eq("sessionId", args.sessionId).eq("batchId", args.batchId),
       )
       .unique();
     if (duplicateBatch) return { accepted: 0, samples: 0, duplicate: true };
@@ -533,8 +554,8 @@ export const ingestHeatmap = mutation({
     for (const bin of bins) {
       const existing = await ctx.db
         .query("analyticsHeatmapBins")
-        .withIndex("by_project_session_bin", (q) =>
-          q.eq("projectId", project._id).eq("sessionId", args.sessionId).eq("binKey", bin.binKey),
+        .withIndex("by_session_bin", (q) =>
+          q.eq("sessionId", args.sessionId).eq("binKey", bin.binKey),
         )
         .unique();
       if (existing) {
@@ -544,7 +565,6 @@ export const ingestHeatmap = mutation({
         });
       } else {
         await ctx.db.insert("analyticsHeatmapBins", {
-          projectId: project._id,
           sessionId: args.sessionId,
           ...bin,
         });
@@ -555,10 +575,8 @@ export const ingestHeatmap = mutation({
       heatmapCount: session.heatmapCount + sampleCount,
     });
     await ctx.db.insert("analyticsBatches", {
-      projectId: project._id,
       sessionId: args.sessionId,
       batchId: args.batchId,
-      kind: "heatmap",
       createdAt: now,
     });
     return { accepted: bins.length, samples: sampleCount, duplicate: false };
@@ -567,17 +585,15 @@ export const ingestHeatmap = mutation({
 
 export const exportSessions = query({
   args: {
-    publicId: v.string(),
-    token: v.string(),
+    adminKey: v.string(),
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
     checkPagination(args.paginationOpts.numItems);
-    const { project, capability } = await requireAccess(ctx, args.publicId, args.token);
-    requireOwner(capability.role);
+    await requireAnalyticsAdmin(args.adminKey);
     const result = await ctx.db
       .query("analyticsSessions")
-      .withIndex("by_project_started", (q) => q.eq("projectId", project._id))
+      .withIndex("by_started")
       .order("asc")
       .paginate(args.paginationOpts);
     return {
@@ -592,6 +608,8 @@ export const exportSessions = query({
         dpr: session.dpr,
         startedAt: session.startedAt,
         endedAt: session.endedAt,
+        lastSeenAt: session.lastSeenAt,
+        lastSequence: session.lastSequence,
         eventCount: session.eventCount,
         heatmapCount: session.heatmapCount,
       })),
@@ -601,8 +619,7 @@ export const exportSessions = query({
 
 export const exportEvents = query({
   args: {
-    publicId: v.string(),
-    token: v.string(),
+    adminKey: v.string(),
     paginationOpts: paginationOptsValidator,
     from: v.optional(v.number()),
     to: v.optional(v.number()),
@@ -612,22 +629,28 @@ export const exportEvents = query({
   },
   handler: async (ctx, args) => {
     checkPagination(args.paginationOpts.numItems);
-    const { project, capability } = await requireAccess(ctx, args.publicId, args.token);
-    requireOwner(capability.role);
+    checkTimeRange(args.from, args.to);
+    await requireAnalyticsAdmin(args.adminKey);
     if (args.kind !== undefined && !EVENT_KINDS.has(args.kind)) {
       throw new ConvexError({ code: "invalid_analytics_filter" });
     }
     if (args.panel !== undefined) safePanel(args.panel);
     const result = await ctx.db
       .query("analyticsEvents")
-      .withIndex("by_project_time", (q) => q.eq("projectId", project._id))
+      .withIndex("by_time", (q) =>
+        args.from === undefined
+          ? args.to === undefined
+            ? q
+            : q.lte("occurredAt", args.to)
+          : args.to === undefined
+            ? q.gte("occurredAt", args.from)
+            : q.gte("occurredAt", args.from).lte("occurredAt", args.to),
+      )
       .filter((q) =>
         q.and(
-          args.from === undefined ? q.eq(q.field("projectId"), project._id) : q.gte(q.field("occurredAt"), args.from),
-          args.to === undefined ? q.eq(q.field("projectId"), project._id) : q.lte(q.field("occurredAt"), args.to),
-          args.kind === undefined ? q.eq(q.field("projectId"), project._id) : q.eq(q.field("kind"), args.kind),
-          args.panel === undefined ? q.eq(q.field("projectId"), project._id) : q.eq(q.field("panel"), args.panel),
-          args.surface === undefined ? q.eq(q.field("projectId"), project._id) : q.eq(q.field("surface"), args.surface),
+          args.kind === undefined ? q.eq(q.field("schemaVersion"), 1) : q.eq(q.field("kind"), args.kind),
+          args.panel === undefined ? q.eq(q.field("schemaVersion"), 1) : q.eq(q.field("panel"), args.panel),
+          args.surface === undefined ? q.eq(q.field("schemaVersion"), 1) : q.eq(q.field("surface"), args.surface),
         ),
       )
       .order("asc")
@@ -636,7 +659,6 @@ export const exportEvents = query({
       ...result,
       page: result.page.map((event) => ({
         schemaVersion: event.schemaVersion,
-        projectId: args.publicId,
         sessionId: event.sessionId,
         eventId: event.eventId,
         sequence: event.sequence,
@@ -660,8 +682,7 @@ export const exportEvents = query({
 
 export const exportHeatmap = query({
   args: {
-    publicId: v.string(),
-    token: v.string(),
+    adminKey: v.string(),
     paginationOpts: paginationOptsValidator,
     from: v.optional(v.number()),
     to: v.optional(v.number()),
@@ -670,18 +691,24 @@ export const exportHeatmap = query({
   },
   handler: async (ctx, args) => {
     checkPagination(args.paginationOpts.numItems);
-    const { project, capability } = await requireAccess(ctx, args.publicId, args.token);
-    requireOwner(capability.role);
+    checkTimeRange(args.from, args.to);
+    await requireAnalyticsAdmin(args.adminKey);
     if (args.panel !== undefined) safePanel(args.panel);
     const result = await ctx.db
       .query("analyticsHeatmapBins")
-      .withIndex("by_project_time", (q) => q.eq("projectId", project._id))
+      .withIndex("by_time", (q) =>
+        args.from === undefined
+          ? args.to === undefined
+            ? q
+            : q.lte("occurredAt", args.to)
+          : args.to === undefined
+            ? q.gte("occurredAt", args.from)
+            : q.gte("occurredAt", args.from).lte("occurredAt", args.to),
+      )
       .filter((q) =>
         q.and(
-          args.from === undefined ? q.eq(q.field("projectId"), project._id) : q.gte(q.field("occurredAt"), args.from),
-          args.to === undefined ? q.eq(q.field("projectId"), project._id) : q.lte(q.field("occurredAt"), args.to),
-          args.panel === undefined ? q.eq(q.field("projectId"), project._id) : q.eq(q.field("panel"), args.panel),
-          args.surface === undefined ? q.eq(q.field("projectId"), project._id) : q.eq(q.field("surface"), args.surface),
+          args.panel === undefined ? q.gte(q.field("occurredAt"), 0) : q.eq(q.field("panel"), args.panel),
+          args.surface === undefined ? q.gte(q.field("occurredAt"), 0) : q.eq(q.field("surface"), args.surface),
         ),
       )
       .order("asc")
@@ -706,26 +733,25 @@ export const exportHeatmap = query({
 });
 
 export const clear = mutation({
-  args: { publicId: v.string(), token: v.string() },
+  args: { adminKey: v.string() },
   handler: async (ctx, args) => {
-    const { project, capability } = await requireAccess(ctx, args.publicId, args.token);
-    requireOwner(capability.role);
+    await requireAnalyticsAdmin(args.adminKey);
     const [events, heatmap, sessions, batches] = await Promise.all([
       ctx.db
         .query("analyticsEvents")
-        .withIndex("by_project_time", (q) => q.eq("projectId", project._id))
+        .withIndex("by_time")
         .take(500),
       ctx.db
         .query("analyticsHeatmapBins")
-        .withIndex("by_project_time", (q) => q.eq("projectId", project._id))
+        .withIndex("by_time")
         .take(500),
       ctx.db
         .query("analyticsSessions")
-        .withIndex("by_project_started", (q) => q.eq("projectId", project._id))
+        .withIndex("by_started")
         .take(500),
       ctx.db
         .query("analyticsBatches")
-        .withIndex("by_project_session_batch", (q) => q.eq("projectId", project._id))
+        .withIndex("by_time")
         .take(500),
     ]);
     for (const row of events) await ctx.db.delete(row._id);

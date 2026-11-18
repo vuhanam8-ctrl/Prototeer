@@ -62,15 +62,23 @@ test("artwork uses authorized Convex storage grants", () => {
   assert.match(assets, /MAX_PROJECT_ASSET_BYTES/);
 });
 
-test("analytics is separate, bounded and owner-only to export or delete", () => {
+test("analytics is site-wide, bounded and private to the deployment admin", () => {
   assert.match(schema, /analyticsSessions:/);
   assert.match(schema, /analyticsEvents:/);
   assert.match(schema, /analyticsHeatmapBins:/);
-  assert.doesNotMatch(schema.match(/analyticsEvents:[\s\S]*?analyticsHeatmapBins:/)?.[0] ?? "", /projectJson|artwork|description|accessKey/);
+  const analyticsTables = schema.match(/analyticsSessions:[\s\S]*?\n\s*\}\);/)?.[0] ?? "";
+  assert.doesNotMatch(analyticsTables, /projectId|projectJson|artwork|description|accessKey/);
+  assert.match(analytics, /PROTOTEER_ANALYTICS_ADMIN_SHA256/);
   for (const name of ["exportSessions", "exportEvents", "exportHeatmap", "clear"]) {
     const section = analytics.split(`export const ${name}`)[1]?.split("export const ")[0] ?? "";
-    assert.match(section, /requireOwner\(capability\.role\)/, name);
+    assert.match(section, /requireAnalyticsAdmin\(args\.adminKey\)/, name);
+    assert.doesNotMatch(section, /requireAccess|requireOwner/, name);
   }
+  for (const name of ["startSession", "endSession", "ingestEvents", "ingestHeatmap"]) {
+    const section = analytics.split(`export const ${name}`)[1]?.split("export const ")[0] ?? "";
+    assert.doesNotMatch(section, /requireAccess|publicId|token/, name);
+  }
+  assert.match(analytics, /"control_clicked"/);
   assert.match(analytics, /MAX_EVENTS_PER_BATCH/);
   assert.match(analytics, /MAX_HEATMAP_SAMPLES_PER_SESSION/);
 });

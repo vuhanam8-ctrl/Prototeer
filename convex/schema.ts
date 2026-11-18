@@ -123,7 +123,6 @@ export default defineSchema({
     .index("by_expiry", ["expiresAt"]),
 
   analyticsSessions: defineTable({
-    projectId: v.id("projects"),
     sessionId: v.string(),
     participantId: v.string(),
     consentVersion: v.number(),
@@ -138,12 +137,12 @@ export default defineSchema({
     eventCount: v.number(),
     heatmapCount: v.number(),
   })
-    .index("by_project_started", ["projectId", "startedAt"])
-    .index("by_project_session", ["projectId", "sessionId"])
+    .index("by_session", ["sessionId"])
+    .index("by_participant_started", ["participantId", "startedAt"])
+    .index("by_started", ["startedAt"])
     .index("by_last_seen", ["lastSeenAt"]),
 
   analyticsEvents: defineTable({
-    projectId: v.id("projects"),
     sessionId: v.string(),
     schemaVersion: v.number(),
     eventId: v.string(),
@@ -162,13 +161,10 @@ export default defineSchema({
     dpr: v.number(),
     context: v.optional(v.any()),
   })
-    .index("by_project_time", ["projectId", "occurredAt"])
-    .index("by_project_session_sequence", ["projectId", "sessionId", "sequence"])
-    .index("by_project_event", ["projectId", "eventId"])
+    .index("by_event", ["eventId"])
     .index("by_time", ["occurredAt"]),
 
   analyticsHeatmapBins: defineTable({
-    projectId: v.id("projects"),
     sessionId: v.string(),
     uiVersion: v.string(),
     surface: v.union(v.literal("ui"), v.literal("board")),
@@ -182,18 +178,14 @@ export default defineSchema({
     count: v.number(),
     occurredAt: v.number(),
   })
-    .index("by_project_time", ["projectId", "occurredAt"])
-    .index("by_project_surface", ["projectId", "uiVersion", "surface", "panel"])
-    .index("by_project_session_bin", ["projectId", "sessionId", "binKey"])
+    .index("by_session_bin", ["sessionId", "binKey"])
     .index("by_time", ["occurredAt"]),
 
   analyticsBatches: defineTable({
-    projectId: v.id("projects"),
     sessionId: v.string(),
     batchId: v.string(),
-    kind: v.union(v.literal("heatmap"), v.literal("events")),
     createdAt: v.number(),
   })
-    .index("by_project_session_batch", ["projectId", "sessionId", "batchId"])
+    .index("by_session_batch", ["sessionId", "batchId"])
     .index("by_time", ["createdAt"]),
 });

@@ -19,7 +19,6 @@ async function test(name, run) {
 
 function options(overrides = {}) {
   return {
-    projectId: "project-1",
     sessionId: "session-1",
     participantId: "participant-1",
     uiVersion: "dev-1",
@@ -37,6 +36,23 @@ await test("declining analytics records and sends nothing", async () => {
   await client.flush();
   assert.equal(sent.length, 0);
   assert.deepEqual({ ...client.pendingCounts() }, { events: 0, bins: 0 });
+});
+
+await test("declined collection schedules no background flush work", async () => {
+  let scheduled = 0;
+  let cleared = 0;
+  const client = analytics.createAnalytics(options({
+    consent: false,
+    flushIntervalMs: 5000,
+    setIntervalFn: () => { scheduled++; return 7; },
+    clearIntervalFn: () => { cleared++; },
+  }));
+  assert.equal(scheduled, 0);
+  client.setConsent(true);
+  assert.equal(scheduled, 1);
+  client.setConsent(false);
+  assert.equal(cleared, 1);
+  await client.destroy();
 });
 
 await test("consented semantic events use only the safe envelope", async () => {
@@ -57,6 +73,18 @@ await test("consented semantic events use only the safe envelope", async () => {
   assert.equal(sent[0].kind, "simulation_run");
   assert.deepEqual({ ...sent[0].context }, { source: "toolbar", permission: "editor" });
   assert.equal("description" in sent[0], false);
+  assert.equal("projectId" in sent[0], false);
+});
+
+await test("dynamic controls can be allowlisted without recording their values or text", async () => {
+  const sent = [];
+  const client = analytics.createAnalytics(options({ consent: true, transport: { batch: (items) => sent.push(...items) } }));
+  assert.equal(client.allowControl("dynamicModalControl"), true);
+  assert.equal(client.record("control_clicked", { panel: "dialog", controlId: "dynamicModalControl" }), true);
+  assert.equal(client.allowControl("contains spaces"), false);
+  await client.flush();
+  assert.equal(sent.length, 1);
+  assert.deepEqual(Object.keys(sent[0]).includes("value"), false);
 });
 
 await test("arbitrary text, controls, context keys and artwork are rejected", async () => {
@@ -142,54 +170,9 @@ await test("a failed session start is retried before queued events are sent", as
   assert.equal(attempts, 2);
 });
 
-await test("JSON export drops unsafe rows and never exports extra fields", () => {
-  const base = {
-    schemaVersion: 1,
-    eventId: "event-1",
-    projectId: "project-1",
-    sessionId: "session-1",
-    sequence: 1,
-    occurredAt: 100,
-    uiVersion: "dev-1",
-    kind: "panel_opened",
-    surface: "ui",
-    panel: "zones",
-    viewportWidth: 1440,
-    viewportHeight: 900,
-    dpr: 1,
-  };
-  const exported = analytics.analyticsExport({
-    events: [
-      { ...base, projectDescription: "do not export me" },
-      { ...base, eventId: "event-2", context: { secret: "owner-key" } },
-      { ...base, eventId: "event-3" },
-    ],
-  }, {}, { generatedAt: 200 });
-  assert.equal(exported.events.length, 1);
-  const text = JSON.stringify(exported);
-  assert.equal(text.includes("do not export me"), false);
-  assert.equal(text.includes("owner-key"), false);
-});
-
-await test("CSV output quotes structured fields and excludes project content", () => {
-  const event = {
-    eventId: "event-1",
-    projectId: "project-1",
-    sessionId: "session-1",
-    sequence: 1,
-    occurredAt: 100,
-    uiVersion: "dev-1",
-    kind: "board_stroke",
-    surface: "board",
-    panel: "board",
-    viewportWidth: 1440,
-    viewportHeight: 900,
-    dpr: 1,
-    context: { cellCount: 4, mode: "draw" },
-  };
-  const csv = analytics.analyticsCsv({ events: [event] }, {}, { generatedAt: 200 }).events;
-  assert.match(csv, /board_stroke/);
-  assert.match(csv, /"\{""cellCount"":4,""mode"":""draw""\}"/);
+await test("customer collector exposes no analytics read or export helpers", () => {
+  assert.equal("analyticsExport" in analytics, false);
+  assert.equal("analyticsCsv" in analytics, false);
 });
 
 console.log(`${passed} analytics tests passed.`);

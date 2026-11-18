@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="prototeer-convex-url" content="">
+  <title>Prototeer analytics desk</title>
+  <link rel="stylesheet" href="./analytics-admin.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./">prototeer <span>/ PRIVATE ANALYTICS</span></a>
+    <div class="top-actions">
+      <span id="connectionState" class="status" data-state="locked">Locked</span>
+      <button id="lock" type="button" hidden>Lock desk</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="loginView" class="login-card" aria-labelledby="loginTitle">
+      <p class="eyebrow">OWNER ACCESS</p>
+      <h1 id="loginTitle">Open the private analytics desk</h1>
+      <p>This page reads Prototeer interaction records. Shared-project owner, editor and viewer links cannot open it.</p>
+      <form id="loginForm">
+        <label>Convex deployment URL
+          <input id="deploymentUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://your-deployment.convex.cloud" required>
+        </label>
+        <label>Analytics admin key
+          <input id="adminKey" type="password" autocomplete="off" spellcheck="false" minlength="43" required>
+        </label>
+        <p id="loginError" class="error" role="alert"></p>
+        <button id="connect" class="primary" type="submit">Open desk</button>
+      </form>
+    </section>
+
+    <section id="desk" hidden>
+      <div class="heading-row">
+        <div>
+          <p class="eyebrow">RAW CUSTOMER INTERACTIONS</p>
+          <h1>Analytics records</h1>
+        </div>
+        <button id="refresh" type="button">Refresh</button>
+      </div>
+
+      <nav class="tabs" aria-label="Analytics tables">
+        <button type="button" role="tab" data-table="sessions" aria-selected="true">Sessions</button>
+        <button type="button" role="tab" data-table="events" aria-selected="false">Events</button>
+        <button type="button" role="tab" data-table="heatmap" aria-selected="false">Heatmap bins</button>
+      </nav>
+
+      <form id="filters" class="filters">
+        <label>From
+          <input id="fromDate" type="datetime-local">
+        </label>
+        <label>To
+          <input id="toDate" type="datetime-local">
+        </label>
+        <label>Surface
+          <select id="surfaceFilter">
+            <option value="">All</option>
+            <option value="ui">Interface</option>
+            <option value="board">Simulation board</option>
+          </select>
+        </label>
+        <label>Panel
+          <select id="panelFilter">
+            <option value="">All</option>
+            <option value="board">Board</option>
+            <option value="object-types">Object types</option>
+            <option value="zones">Zones</option>
+            <option value="creatures">Creatures</option>
+            <option value="stats">Stats</option>
+            <option value="interaction-rules">Interaction rules</option>
+            <option value="tags">Tags</option>
+            <option value="behavior-tree">Behavior tree</option>
+            <option value="directors">Directors</option>
+            <option value="history">History</option>
+            <option value="inspector">Inspector</option>
+            <option value="dialog">Dialog</option>
+            <option value="projects">Projects</option>
+            <option value="share">Share</option>
+            <option value="header">Header</option>
+            <option value="unknown">Unknown</option>
+          </select>
+        </label>
+        <label>Kind
+          <select id="kindFilter"><option value="">All</option></select>
+        </label>
+        <button class="primary" type="submit">Apply filters</button>
+        <button id="clearFilters" type="button">Clear</button>
+      </form>
+
+      <div class="table-toolbar">
+        <span id="pageSummary" aria-live="polite"></span>
+        <div>
+          <button id="exportJson" type="button">Export filtered JSON</button>
+          <button id="exportCsv" type="button">Export filtered CSV</button>
+        </div>
+      </div>
+
+      <div class="table-wrap" tabindex="0">
+        <table>
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="pagination">
+        <button id="previousPage" type="button" disabled>Previous</button>
+        <span id="pageNumber">Page 1</span>
+        <button id="nextPage" type="button" disabled>Next</button>
+      </div>
+
+      <section class="danger-zone" aria-labelledby="dangerTitle">
+        <div>
+          <h2 id="dangerTitle">Delete analytics records</h2>
+          <p>This permanently removes collected sessions, events and heatmap bins from Convex.</p>
+        </div>
+        <button id="deleteAll" class="danger" type="button">Delete all analytics</button>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="deleteDialog">
+    <form id="deleteForm" method="dialog">
+      <h2>Delete every analytics record?</h2>
+      <p>Type <strong>DELETE</strong> to confirm. Project data is not affected.</p>
+      <label>Confirmation
+        <input id="deleteConfirmation" autocomplete="off">
+      </label>
+      <p id="deleteError" class="error" role="alert"></p>
+      <div class="dialog-actions">
+        <button value="cancel">Cancel</button>
+        <button id="confirmDelete" class="danger" value="default">Delete records</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/convex-client.js"></script>
+  <script src="./analytics-admin.js"></script>
+</body>
+</html>

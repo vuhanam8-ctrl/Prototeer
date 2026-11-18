@@ -30,9 +30,18 @@ Shared projects synchronize incremental board, definition, zone and graph edits;
 
 One leased browser controls a shared simulation timeline. Other browsers receive its frames; the editable project remains separate and becomes the starting point of the next run. Shared editing is intentionally desktop-only in this version.
 
-Interaction research is optional and consent-gated. It records allowlisted editor actions and aggregated click, pointer and scroll heatmap bins in separate tables. It rejects project descriptions, artwork, project JSON and access keys. Owners can export sanitized JSON or three CSV files and delete collected data. There is no AI analytics feature and mouse movement is not presented as eye tracking.
+Customer usage collection is optional and consent-gated. When the Convex URL is configured, it records allowlisted editor actions and aggregated click, pointer and scroll heatmap bins across the site. It rejects project descriptions, artwork, project JSON, control values and access keys. Customers never receive analytics read, export or deletion controls; their Export button remains project export only. There is no AI analytics feature and mouse movement is not presented as eye tracking.
 
-To publish online mode, deploy `convex/`, then build with `PROTOTEER_CONVEX_URL` set to that deployment's `https://...convex.cloud` URL. Without that developer deployment step, the same build continues to work locally/offline.
+## Private raw analytics desk
+
+`docs/dev/analytics-admin.html` is an unlinked, `noindex` owner desk for reading the raw Convex sessions, events and heatmap-bin tables. It paginates records, supports backend filters, exports bounded JSON/CSV files and can delete analytics. It never accepts shared-project owner/editor/viewer links. Access requires a separate high-entropy analytics admin key held only in memory by the page.
+
+1. Run `pnpm analytics:key`. Keep the printed admin key private and retain the printed SHA-256 digest.
+2. After selecting the Convex deployment, set `PROTOTEER_ANALYTICS_ADMIN_SHA256` to that digest with `pnpm exec convex env set PROTOTEER_ANALYTICS_ADMIN_SHA256` or through Convex deployment settings.
+3. Deploy `convex/`, then build/package with `PROTOTEER_CONVEX_URL` set to the deployment's `https://...convex.cloud` URL.
+4. Open `/Prototeer/dev/analytics-admin.html` directly and enter the deployment URL and private raw key. The key is never stored in the page URL or browser storage.
+
+Without the developer deployment step, the same editor build continues to work locally/offline, but collaboration and usage collection remain disconnected.
 
 ## Website versions
 
