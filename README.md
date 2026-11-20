@@ -47,7 +47,6 @@ Without the developer deployment step, the same editor build continues to work l
 
 Development: https://vuhanam8-ctrl.github.io/Prototeer/dev/
 
-Submitted version: https://vuhanam8-ctrl.github.io/Prototeer/
 
 The root source files build the development app under docs/dev/. Preserve docs/index.html and docs/Prototeer.zip as the frozen submitted version. GitHub Pages serves main /docs. npm run package creates the development archive and an upload folder containing only docs/dev/.
 
