@@ -26,7 +26,7 @@ World-level messageRoutes records hold lifecycle/deduplication references. World
 
 DebugSnapshot reads diagnostic records separately. Clearing diagnostic records must not change decisions. Debug data is part of a complete editor save for replay/inspection; it is not part of the receiver input contract. Retention limits are 16,000 route records and 2,000 diagnostic records, with expired records pruned.
 
-This is a data/logic boundary for the supported node system, not a security sandbox for arbitrary third-party JavaScript. A game programmer has access to their own world state. A future engine adapter must pass the delivered payload to receiver logic and must not merge diagnostic data into it. No Unity or Unreal adapter is implemented here.
+This is a data/logic boundary for the supported node system, not a security sandbox for arbitrary third-party JavaScript. A game programmer has access to their own world state. An engine adapter that supports directors must pass the delivered payload to receiver logic without merging diagnostic data into it. The initial Unity export does not carry director or message data.
 
 ## Migration and portability
 

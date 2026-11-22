@@ -1,4 +1,5 @@
 import {WIDTH,HEIGHT,MAX_BYTES,uid,createWorld,makeTool,addStat,place,step,interact,makeRule,makeDecision,validWorld,emit,setToolStats,defineTag,makeNode,canConnect,normalizeWorld,generateHistory,makeCreatureTool,addUtilityBranch,makeZone,zoneCells,inZone,nodeUtilityScore,createDemoWorld,makeDirector,makeDirectorRule,sendSignal,activeMessage,connectDirectorInput,debugSnapshot,messageField,messageFieldsForRule} from './engine.js';
+import {compileUnityExport} from './unity-export.js';
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const GRAPH_X=1.3,GRAPH_Y=1.65,GRAPH_NODE_WIDTH=270,GRAPH_PORT_Y=55;
 let splitEnabled=true,splitInspector=false,followActive=true,graphToolsOpen=false,graphDrag=null,connecting=null;
@@ -60,9 +61,85 @@ function setRunning(value,remote=false,controller=false){if(collaboration?.activ
 $('play').onclick=()=>{analytics?.record(running?'simulation_pause':'simulation_run',{panel:'board'});setRunning(!running);};$('step').onclick=async()=>{analytics?.record('simulation_step',{panel:'board'});if(collaboration?.active()){if(!collaboration.canEdit())return toast('This view-only link cannot control the simulation.');try{if(!baseline)baseline=collaboration.editableWorld()??structuredClone(world);const result=await collaboration.startSimulation();if(!result.controller)return toast('Another collaborator controls this run.');step(world);runtimeChanged();renderRuntime();await collaboration.publishSimulation(world,true);await collaboration.pauseSimulation();}catch{toast('The shared step could not be completed.');}return;}setRunning(false);if(!baseline)baseline=structuredClone(world);step(world);runtimeChanged();renderRuntime();};setInterval(()=>{if(!running||collaboration?.active()&&!sharedController)return;for(let i=0;i<Number($('speed').value);i++)step(world);runtimeChanged();renderRuntime();if(collaboration?.active())void collaboration.publishSimulation(world);},250);$('reset').onclick=async()=>{analytics?.record('simulation_reset',{panel:'board'});if(collaboration?.active()){if(!collaboration.canEdit())return toast('This view-only link cannot reset the simulation.');try{await collaboration.resetSimulation();restoreSharedEditable();toast('Shared simulation reset.');}catch{toast('The shared simulation could not reset.');}return;}if(!baseline)return toast('Run or step the simulation first.');setRunning(false);checkpoint();world=structuredClone(baseline);baseline=null;librariesInitialized=false;runtimeChanged();refresh();toast('Restored the board to the start of this run.');};
 function doUndo(reverse=false){if(collaboration?.active())return toast('Shared undo is not available yet; your collaborators’ edits are preserved.');analytics?.record(reverse?'redo':'undo',{panel:'board'});setRunning(false);const from=reverse?redo:undo,to=reverse?undo:redo;if(!from.length)return toast(reverse?'Nothing to redo.':'Nothing to undo.');to.push(structuredClone(world));world=from.pop();baseline=null;imageCache.clear();librariesInitialized=false;eventsRenderKey='';changed();refresh();} $('undo').onclick=()=>doUndo();$('redo').onclick=()=>doUndo(true);
 async function api(path,options){if(globalThis.PrototeerStorage)return globalThis.PrototeerStorage.request(path,options);const response=await fetch('/api/'+path,options);if(!response.ok){let msg='Backend request failed';try{msg=(await response.json()).error||msg;}catch{}throw Error(msg);}return response.json();}
-function download(data,name){const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=(name||'world').replace(/[^a-z0-9_-]/gi,'-')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+function downloadBlob(blob,fileName){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=fileName;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+function download(data,name,extension='.json'){downloadBlob(new Blob([JSON.stringify(data,null,extension==='.json'?2:0)],{type:'application/json'}),(name||'world').replace(/[^a-z0-9_-]/gi,'-')+extension);}
 $('save').onclick=async()=>{const candidate=collaboration?.active()&&running?(collaboration.editableWorld()??world):world;if(!validWorld(candidate))return toast('Project contains an incomplete or invalid definition. Check your object types and rules.');const body=JSON.stringify(candidate);if(new TextEncoder().encode(body).length>MAX_BYTES)return toast('Project exceeds 12 MB. Use smaller artwork files.');const rev=revision,b=$('save');b.disabled=true;b.textContent='Saving…';analytics?.record('save_started',{panel:'header',flow:'project-save'});try{if(collaboration?.active())await collaboration.checkpoint();else await api('projects/'+world.id,{method:'PUT',headers:{'Content-Type':'application/json'},body});if(revision===rev||collaboration?.active()){dirty=false;$('saveState').textContent=collaboration?.active()?'Synced':'Saved';}analytics?.record('save_succeeded',{panel:'header',flow:'project-save',result:'success'});toast(collaboration?.active()?'Shared project revision saved.':globalThis.PrototeerStorage?'Project and artwork saved in this browser.':'Project and artwork saved to the backend.');}catch(e){analytics?.record('save_failed',{panel:'header',flow:'project-save',result:'error',context:{errorCode:'save_failed'}});if(globalThis.PrototeerStorage&&!collaboration?.active()){download(world,world.name);toast('Browser save failed. Downloaded a project file instead; use Import JSON to reopen it.');}else toast('Could not save this project.');}finally{b.disabled=false;b.textContent='Save project';}};
 $('export').onclick=()=>{const data=collaboration?.active()?(collaboration.editableWorld()??world):world;download(data,data.name);analytics?.record('project_exported',{panel:'header'});toast('Project exported, including your artwork.');};
+function unityExportWorld() {
+  return collaboration?.active() ? collaboration.editableWorld() ?? world : world;
+}
+async function downloadUnityTools(button) {
+  button.disabled = true;
+  try {
+    const base64 = globalThis.PROTOTEER_UNITY_INSTALLER_BASE64;
+    let archive;
+    if (base64) {
+      const bytes = Uint8Array.from(atob(base64), character => character.charCodeAt(0));
+      archive = new Blob([bytes], {type: 'application/zip'});
+    } else {
+      const response = await fetch('/Prototeer.Unity.zip');
+      if (!response.ok) throw Error('Unity tools are unavailable.');
+      archive = await response.blob();
+    }
+    downloadBlob(archive, 'Prototeer.Unity.zip');
+  } catch {
+    if (button.isConnected && $('dialog').open) $('unityToolsStatus').textContent = 'Could not download the Unity tools.';
+    else toast('Could not download the Unity tools.');
+  } finally {
+    button.disabled = false;
+  }
+}
+$('exportUnity').onclick = () => {
+  const data = unityExportWorld();
+  const selected = data.tools.find(tool => tool.id === toolId) ?? data.tools[0];
+  modal('Export to Unity', `
+    <div class="unity-export">
+      <fieldset class="unity-export-types">
+        <legend>Object types</legend>
+        <div class="assignment-list">${data.tools.length ? data.tools.map(tool =>
+          `<label><input type="checkbox" value="${esc(tool.id)}" data-unity-type="" ${tool === selected ? 'checked' : ''}><span>${esc(tool.name)}</span></label>`
+        ).join('') : '<p>Create an object type to export it.</p>'}</div>
+      </fieldset>
+      <label class="unity-export-toggle"><input id="includeUnityTrees" type="checkbox" checked> Include behavior trees</label>
+      <p>Unity 6.6.10f1 · Behavior 1.0.17. Use your Unity scene’s objects, zone shapes, and navigation.</p>
+      <div id="unityExportIssues" class="unity-export-issues" aria-live="polite" hidden></div>
+      <div id="unityToolsStatus" class="dialog-error" role="status"></div>
+      <div class="dialog-actions unity-export-actions">
+        <button id="downloadUnityTools">Download Unity tools</button>
+        <button id="downloadUnityExport" class="primary">Download Unity export</button>
+      </div>
+    </div>
+  `, 'PROJECT');
+  const toolInputs = [...$('dialogBody').querySelectorAll('[data-unity-type]')];
+  const includeTrees = $('includeUnityTrees');
+  const issuesPanel = $('unityExportIssues');
+  const exportButton = $('downloadUnityExport');
+  const toolsButton = $('downloadUnityTools');
+  const validate = () => {
+    const toolIds = toolInputs.filter(element => element.checked).map(element => element.value);
+    const result = compileUnityExport(unityExportWorld(), {toolIds, includeTrees: includeTrees.checked});
+    issuesPanel.innerHTML = result.issues.length
+      ? '<ul>' + result.issues.map(issue => `<li>${esc(issue)}</li>`).join('') + '</ul>' : '';
+    issuesPanel.hidden = !result.issues.length;
+    exportButton.disabled = !result.data;
+    return result.data;
+  };
+  for (const input of toolInputs) input.onchange = validate;
+  includeTrees.onchange = validate;
+  toolsButton.onclick = () => {
+    $('unityToolsStatus').textContent = '';
+    void downloadUnityTools(toolsButton);
+  };
+  exportButton.onclick = () => {
+    const exportData = validate();
+    if (exportData) {
+      download(exportData, exportData.name, '.prototeer.json');
+      $('dialog').close();
+      toast('Unity export downloaded.');
+    }
+  };
+  validate();
+};
 function adopt(data){data=normalizeWorld(data);if(!validWorld(data))throw Error(data?.version===1?'This is a legacy themed project. Download its backup from Projects; start a new sandbox to use the new editor.':'This is not a valid sandbox project.');if(collaboration?.active())applyRunningState(false,false);else setRunning(false);world=data;guideOpen=false;zoneId=world.zones[0]?.id??null;entityId=null;toolId=world.tools[0]?.id??null;baseline=null;undo=[];redo=[];zoom=1;pan={x:0,y:0};imageCache.clear();librariesInitialized=false;eventsRenderKey='';revision++;dirty=false;refresh();$('saveState').textContent=collaboration?.active()?'Synced':'Loaded';$('dialog').close();}
 function applyRemoteProject(data,preserveUi=false){data=normalizeWorld(data);if(!validWorld(data))return toast('A shared update could not be applied.');if(!preserveUi)return adopt(data);const graphScroll=$('brainGraph')?{left:$('brainGraph').scrollLeft,top:$('brainGraph').scrollTop}:null;applyingRemote=true;world=data;applyingRemote=false;if(!world.tools.some(t=>t.id===toolId))toolId=world.tools[0]?.id??null;if(!world.entities.some(e=>e.id===entityId))entityId=null;if(!world.zones.some(z=>z.id===zoneId))zoneId=world.zones[0]?.id??null;imageCache.clear();librariesInitialized=false;eventsRenderKey='';revision++;projectRevision++;refresh();if(graphScroll&&$('brainGraph')){$('brainGraph').scrollLeft=graphScroll.left;$('brainGraph').scrollTop=graphScroll.top;}$('saveState').textContent='Synced';}
 function applyRemoteOperation(operation){try{const next=globalThis.PrototeerProjectOps?.applyOperation?.(world,operation);if(!next)return;applyRemoteProject(next,true);}catch{toast('A shared edit could not be applied.');}}

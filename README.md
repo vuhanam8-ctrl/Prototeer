@@ -8,6 +8,10 @@ Open docs/dev/index.html directly in a modern browser, or extract Prototeer.zip 
 
 Save project uses IndexedDB in the current browser. Export downloads the full project and artwork as JSON. Projects → Import JSON loads a project file. Browser storage can be blocked, cleared, or scoped differently for file URLs; keep JSON exports. If a browser save fails, Save downloads a project file instead. Existing project files from the previous hosted version remain compatible. Previously saved server projects need to be exported from that site and imported here.
 
+## Export to Unity
+
+Use **Export to Unity** to download selected definitions and compatible behavior trees as a `.prototeer.json` file. Download **Unity tools** from the same dialog and extract the ZIP into your Unity project. The importer creates native editable Behavior graphs and reusable definitions for your GameObjects. This release targets Unity 6000.6.10f1 and Unity Behavior 1.0.17. See [Unity setup and supported behavior](unity/README.md).
+
 ## Develop and package
 
 Use the already installed Node.js and pnpm workspace.

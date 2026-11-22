@@ -1,0 +1,6 @@
+{
+  "name": "Prototeer.Unity.Runtime",
+  "rootNamespace": "Prototeer.Unity",
+  "references": ["Unity.Behavior"],
+  "autoReferenced": true
+}

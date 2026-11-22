@@ -6,3 +6,45 @@ test('unavailable or full browser storage reports failure instead of a false sav
 test('compiled file build boots, runs, saves and reopens without any fetch calls',async()=>{const {document,js}=await buildPortable(),idb=fakeIndexedDB();const {editor,get}=bootEditor({html:document,source:js,globals:{indexedDB:idb,location:{protocol:'file:'}}});assert.equal(editor.world().zones.length,4);get('step').click();assert.equal(editor.world().tick,1);await get('save').onclick();assert.equal(get('saveState').textContent,'Saved');await get('projects').onclick();assert.ok(get('dialogBody').innerHTML.includes('Pursuit lab'));const savedId=editor.world().id;const store=createProjectStore(idb,validWorld,MAX_BYTES),saved=await store.request('projects/'+savedId);assert.equal(saved.tick,1);assert.ok(validWorld(saved));editor.adopt(saved);assert.equal(editor.world().tick,1);assert.equal(get('downloadPortable').hidden,true);});
 
 test('file-mode save falls back to JSON download when browser storage is blocked',async()=>{const {document,js}=await buildPortable();const {get}=bootEditor({html:document,source:js,globals:{location:{protocol:'file:'},indexedDB:undefined}});await get('save').onclick();assert.ok(get('toast').textContent.includes('Downloaded a project file'));assert.notEqual(get('saveState').textContent,'Saved');});
+
+test('Unity export downloads selected mechanics and install tools from the offline editor', async () => {
+  const {document, js, installer} = await buildPortable();
+  const downloads = [];
+  const {editor, get} = bootEditor({
+    html: document, source: js,
+    globals: {
+      location: {protocol: 'file:'},
+      URL: {createObjectURL(blob) { downloads.push(blob); return 'blob:file'; }, revokeObjectURL() {}},
+    },
+  });
+  const world = createDemoWorld();
+  world.tools[0].image = 'data:image/png;base64,iVBORw0KGgo=';
+  editor.adopt(world);
+  get('exportUnity').click();
+  assert.equal(get('dialog').open, true);
+  const inputs = get('dialogBody').querySelectorAll('[data-unity-type]');
+  const pursuer = world.tools.find(tool => tool.name === 'Pursuer');
+  for (const input of inputs) input.checked = input.value === pursuer.id;
+  get('includeUnityTrees').onchange();
+  assert.equal(get('downloadUnityExport').disabled, true);
+  assert.match(get('unityExportIssues').innerHTML, /Unity/i);
+  get('includeUnityTrees').checked = false;
+  get('includeUnityTrees').onchange();
+  assert.equal(get('downloadUnityExport').disabled, false);
+  get('downloadUnityTools').click();
+  assert.deepEqual(Buffer.from(await downloads[0].arrayBuffer()), installer);
+  assert.match(installer.toString('latin1'), /Packages\/com\.prototeer\.unity\/package\.json/);
+  get('downloadUnityExport').click();
+  const data = JSON.parse(await downloads[1].text());
+  assert.equal(data.format, 'prototeer-unity');
+  assert.equal(data.formatVersion, 1);
+  assert.deepEqual(data.tools.map(tool => tool.id), [pursuer.id]);
+  assert.equal(data.tools[0].brainEnabled, false);
+  assert.equal(data.tools[0].rules.length, pursuer.rules.length);
+  assert.deepEqual(Object.keys(data).sort(), ['format','formatVersion','name','stats','tagDefs','tools','zones'].sort());
+  get('export').click();
+  const backup = JSON.parse(await downloads[2].text());
+  assert.equal(backup.tools[0].image, world.tools[0].image);
+  assert.ok(backup.entities.length);
+  assert.ok(backup.directors.length);
+});

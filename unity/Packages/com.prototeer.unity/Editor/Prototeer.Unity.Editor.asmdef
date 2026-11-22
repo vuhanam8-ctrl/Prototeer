@@ -1,0 +1,6 @@
+{
+  "name": "Prototeer.Unity.Editor",
+  "rootNamespace": "Prototeer.Unity.Editor",
+  "references": ["Prototeer.Unity.Runtime", "Unity.Behavior"],
+  "includePlatforms": ["Editor"]
+}
