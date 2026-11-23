@@ -454,12 +454,12 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
   </main>
 </section>
 <div id="editorShell" hidden>
-<header data-analytics-region="header"><a class="brand" href="./index.html">prototeer<span> / </span><small>SANDBOX</small></a><button id="editorBackToProject" type="button" hidden>Back to project</button><input id="projectName" value="Untitled sandbox" aria-label="Project name"><span id="saveState">Unsaved</span><span id="syncState" class="sync-state" data-state="local">Local</span><div id="presence" class="presence" aria-label="People in this project"></div><div class="header-actions"><a class="download-zip" id="downloadPortable" href="./Prototeer.zip" download>Download ZIP</a><button id="projects">Projects</button><button id="share">Share</button><button id="export">Export</button><button id="exportUnity">Export to Unity</button><button id="help" aria-label="Help">?</button><button id="save" class="primary">Save project</button></div></header>
-<div class="layout" id="editorLayout"><aside class="left" data-analytics-region="workspace"><div class="workspace-label">WORKSPACE <span>DEV</span></div><nav aria-label="Workspace"><button class="nav active" data-view="board">Board <kbd>1</kbd></button>
+<header data-analytics-region="header"><a class="brand" href="./index.html">prototeer</a><button id="editorBackToProject" type="button" hidden>Back to project</button><input id="projectName" value="Untitled sandbox" aria-label="Project name"><span id="saveState">Unsaved</span><span id="syncState" class="sync-state" data-state="local">Local</span><div id="presence" class="presence" aria-label="People in this project"></div><div class="header-actions"><a class="download-zip" id="downloadPortable" href="./Prototeer.zip" download>Download ZIP</a><button id="projects">Projects</button><button id="share">Share</button><button id="export">Export</button><button id="exportUnity">Export to Unity</button><button id="help" aria-label="Help">?</button><button id="save" class="primary">Save project</button></div></header>
+<div class="layout" id="editorLayout"><aside class="left" data-analytics-region="workspace"><div class="workspace-label">WORKSPACE</div><nav aria-label="Workspace"><button class="nav active" data-view="board">Board <kbd>1</kbd></button>
 <details class="workspace-group" id="workspaceTool" open><summary>Objects</summary><div class="workspace-group-content"><button class="nav" data-view="tools">Object types <span id="toolCount">0</span></button><button class="nav" data-view="zones">Zones <span id="zoneCount">0</span></button><button class="nav" data-view="creatures">Creatures <span id="creatureCount">0</span></button><details class="brush-palette"><summary>Object palette</summary><div class="section-title">OBJECT TYPES<button id="newTool" title="Create object type">＋</button></div><div id="toolList"></div><button id="createTool" class="dashed">＋ Create object type</button><button id="createCreature" class="dashed">＋ Create creature</button><div class="zone-shelf"><div class="section-title">ZONES<button id="quickNewZone" title="Create zone">＋</button></div><div id="zoneBrushes"></div></div></details></div></details>
 <details class="workspace-group" id="workspaceProperties"><summary>Properties</summary><div class="workspace-group-content"><button class="nav" data-view="stats">Stats <span id="statCount">0</span></button><button class="nav" data-view="rules">Interaction rules <span id="ruleCount">0</span></button><button class="nav" data-view="tags">Tags <span id="tagCount">0</span></button><button id="quickStat" class="dashed">＋ Create stat</button></div></details>
 <details class="workspace-group" id="workspaceBehavior"><summary>Behavior tree</summary><div class="workspace-group-content"><button class="nav" data-view="behavior">Tree editor</button><button class="nav" data-view="directors">Directors <span id="directorCount">0</span></button></div></details></nav></aside>
-<main data-analytics-region="editor"><div class="page-heading"><div><div class="eyebrow" id="pageEyebrow" hidden></div><h1 id="pageTitle">Board</h1><p id="pageCopy" hidden></p></div><div class="action-row"><button id="toggleSplit" aria-pressed="true">Board + tree</button><button id="toggleInspector" aria-pressed="false">Show inspector</button><button id="tutorialReplay">Guide</button><button id="reloadHouse">Pursuit demo</button><button id="newBlank">New Project</button></div></div>
+<main data-analytics-region="editor"><div class="page-heading"><div><div class="eyebrow" id="pageEyebrow" hidden></div><h1 id="pageTitle">Board</h1><p id="pageCopy" hidden></p></div><div class="action-row"><button id="toggleSplit" aria-pressed="true">Board + tree</button><button id="toggleInspector" aria-pressed="false">Show inspector</button><button id="tutorialReplay">Guide</button><button id="reloadHouse">Pursuit demo</button><button id="editorAddBoard" type="button" hidden>Add Board</button></div></div>
 <section id="tutorialGuide" class="tutorial-guide"></section><div id="simulationWorkspace"><section id="boardView"><div class="board-top"><span>Untitled board <small>64 × 44 cells</small></span><div><label><input id="gridToggle" type="checkbox" checked> Grid</label><button id="fit">Fit board</button><button id="zoomOut" aria-label="Zoom out">−</button><output id="zoomLabel">100%</output><button id="zoomIn" aria-label="Zoom in">＋</button></div></div><details class="debug-panel" id="debugPanel"><summary>Debug view </summary><div class="debug-controls"><label><input id="debugEnabled" type="checkbox" checked> Show overlays</label><label><input id="debugCollision" type="checkbox"> Collision</label><label><input id="debugPaths" type="checkbox" checked> Goals &amp; paths</label><label><input id="debugHints" type="checkbox" checked> Director messages</label><label><input id="debugSignals" type="checkbox" checked> Signals</label><label><input id="debugLabels" type="checkbox" checked> Decision labels</label><label><input id="debugAll" type="checkbox"> All creatures (up to 20)</label></div><div id="debugReadout" class="debug-readout"></div></details><div class="board-wrap" id="boardWrap" data-analytics-region="board"><canvas id="board" aria-label="Sandbox board. Select Draw and an object type to paint. Select objects to inspect. Drag in Pan mode to move the view."></canvas><div id="remotePointers" class="remote-pointers" aria-hidden="true"></div><div id="emptyBoard"><div class="empty-mark">＋</div><h2>Empty board</h2><button id="emptyCreate">Create your first object type</button></div><div class="floating-toolbar"><button data-mode="select" class="active" title="Select (V)">Select <kbd>V</kbd></button><button data-mode="draw" title="Draw (B)">Draw <kbd>B</kbd></button><button data-mode="erase" title="Erase (E)">Erase <kbd>E</kbd></button><button data-mode="zone">Paint zone</button><button data-mode="zoneErase">Erase zone</button><span></span><button data-mode="pan" title="Pan (H)">Pan <kbd>H</kbd></button><button id="undo" title="Undo (Ctrl+Z)">↶</button><button id="redo" title="Redo (Ctrl+Shift+Z)">↷</button></div><div class="board-caption" id="boardCaption">Select an object type to start drawing</div><div id="coords">X — / Y —</div></div><div class="transport"><div><button id="play" class="primary">▶ Run</button><button id="step">Step</button><select id="speed" aria-label="Simulation speed"><option value="1">1×</option><option value="5">5×</option><option value="20">20×</option></select><button id="reset">Reset run</button></div><div><span id="runLabel">PAUSED</span><strong id="tick">Tick 0</strong></div></div></section>
 <section id="behaviorView" class="library hidden"><div class="section-heading"><div><h2>Behavior tree + Utility AI</h2></div><select id="brainTool" aria-label="Object type whose behavior tree to edit"></select></div><div class="brain-instance-row"><label>Watch placed instance<select id="brainInstance" aria-label="Placed instance whose decisions to watch"></select></label><span id="brainLiveStatus" class="brain-live-status"></span></div><div id="brainContent"></div></section>
 </div><section id="toolsView" class="library hidden"><div class="section-heading"><div><h2>Object types</h2></div><button class="primary" id="libraryNewTool">＋ New object type</button></div><div id="toolCards" class="cards"></div></section>
@@ -6961,6 +6961,7 @@ globalThis.convex=convex;
       for (const id of ['frontLobby', 'projectLobby', 'projectPage', 'editorShell']) $(id).hidden = id !== page;
       if (page !== 'projectPage') boardRender++;
       $('editorBackToProject').hidden = !project;
+      $('editorAddBoard').hidden = !project || project.role === 'viewer';
       $('projectName').setAttribute('aria-label', project ? 'Board name' : 'Project name');
     }
 
@@ -7177,6 +7178,13 @@ globalThis.convex=convex;
       inEditor = false;
     }
 
+    async function returnToProject() {
+      await leaveWorkspace();
+      show('projectPage');
+      setRoute(routeFor(project));
+      renderBoards();
+    }
+
     function openNameDialog() {
       $('projectNameInput').value = '';
       status('projectNameStatus');
@@ -7218,8 +7226,10 @@ globalThis.convex=convex;
         rememberLocal(updated);
         project = updated;
       }
+      const boardId = pendingBoard.id;
       pendingBoard = null;
       renderBoards();
+      return boardId;
     }
 
     async function publishProject() {
@@ -7345,11 +7355,12 @@ globalThis.convex=convex;
     $('frontDemo').onclick = $('lobbyDemo').onclick = launchDemo;
     $('projectAddBoard').onclick = exclusive('projectPageStatus', addBoard);
     $('projectBackToLobby').onclick = exclusive('projectPageStatus', showFront);
-    $('editorBackToProject').onclick = exclusive('projectPageStatus', async () => {
-      await leaveWorkspace();
-      show('projectPage');
-      setRoute(routeFor(project));
-      renderBoards();
+    $('editorBackToProject').onclick = exclusive('projectPageStatus', returnToProject);
+    $('editorAddBoard').onclick = exclusive('projectPageStatus', async () => {
+      if (!project || project.role === 'viewer') return;
+      await returnToProject();
+      const boardId = await addBoard();
+      if (boardId) await showBoard(boardId);
     });
     $('projectInvite').onclick = inviteDialog;
     $('projectInviteClose').onclick = () => $('projectInviteDialog').close();
@@ -7400,7 +7411,6 @@ globalThis.convex=convex;
 
     void exclusive('frontStatus', restoreLocation)();
     return {
-      newProject: openNameDialog,
       launchDemo,
       isSharedBoard: () => Boolean(project?.shared && inEditor),
       lobby: exclusive('lobbyStatus', async () => { await leaveWorkspace(); await showLobby(); }),
@@ -7409,10 +7419,7 @@ globalThis.convex=convex;
         if (!project) return false;
         if (project.role !== 'owner') { toast('Only the project owner can create invite links.'); return true; }
         void exclusive('projectPageStatus', async () => {
-          await leaveWorkspace();
-          show('projectPage');
-          setRoute(routeFor(project));
-          renderBoards();
+          await returnToProject();
           inviteDialog();
         })();
         return true;
@@ -8010,7 +8017,7 @@ function applyRemoteOperations(operations){try{const next=globalThis.PrototeerPr
 async function loadProject(id){try{collaboration?.leave();adopt(await api('projects/'+id));analytics?.record('project_opened',{panel:'projects'});toast('Project loaded.');}catch(e){toast(e.message);}}
 $('projects').onclick=async()=>{modal('Your projects','','WORKSPACE / SAVED');try{const list=await api('projects'),shared=collaboration?.listKnownProjects?.()??[];$('dialogBody').innerHTML='<div class="action-row"><button id="importProject">Import JSON</button></div>'+(shared.length?'<div class="form-section">SHARED</div>'+shared.map(p=>`<div class="project-row"><div><strong>${esc(p.name)}</strong><small>${esc(p.role)} link · ${esc(new Date(p.updatedAt).toLocaleString())}</small></div><button data-open-shared="${esc(p.projectId)}">Open</button></div>`).join(''):'')+(list.length?'<div class="form-section">THIS BROWSER</div>'+list.map(p=>`<div class="project-row"><div><strong>${esc(p.name)}</strong><small>Tick ${p.tick} · ${esc(new Date(p.updated).toLocaleString())}</small></div><button data-backup="${esc(p.id)}">Backup</button><button data-load="${esc(p.id)}">Open</button></div>`).join(''):'');$('importProject').onclick=()=>$('importFile').click();const confirmOpen=action=>{if(dirty){modal('Open saved project?','<div class="dialog-actions"><button id="cancelLoad">Cancel</button><button class="primary" id="confirmLoad">Open project</button></div>');$('cancelLoad').onclick=()=>$('dialog').close();$('confirmLoad').onclick=action;}else action();};$('dialogBody').querySelectorAll('[data-load]').forEach(b=>b.onclick=()=>confirmOpen(()=>loadProject(b.dataset.load)));$('dialogBody').querySelectorAll('[data-open-shared]').forEach(b=>b.onclick=()=>confirmOpen(async()=>{try{await collaboration.openKnown(b.dataset.openShared);analytics?.record('project_opened',{panel:'projects'});}catch{toast('This shared project could not be opened.');}}));$('dialogBody').querySelectorAll('[data-backup]').forEach(b=>b.onclick=async()=>{try{const p=await api('projects/'+b.dataset.backup);download(p,p.name);}catch(e){toast(e.message);}});}catch(e){$('dialogBody').innerHTML=`<p>${esc(e.message)}</p><button id="importProject">Import JSON</button>`;$('importProject').onclick=()=>$('importFile').click();}};
 $('importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>MAX_BYTES)throw Error('Maximum project size is 12 MB.');const data=normalizeWorld(JSON.parse(await file.text()));if(!validWorld(data))throw Error('This file is not a valid sandbox project.');const apply=()=>{if(collaboration?.active())collaboration.leave();adopt(data);projectHome?.showStandalone();changed();analytics?.record('project_imported',{panel:'projects',flow:'project-import',result:'success'});toast('Imported. Save to store it on the backend.');};if(dirty){modal('Import this project?','<div class="dialog-actions"><button id="cancelImport">Cancel</button><button class="primary" id="confirmImport">Import project</button></div>');$('cancelImport').onclick=()=>$('dialog').close();$('confirmImport').onclick=apply;}else apply();}catch(err){analytics?.record('validation_error',{panel:'projects',flow:'project-import',result:'error',context:{errorCode:'validation'}});toast(err.message);}e.target.value='';};
-$('projectName').oninput=e=>{world.name=e.target.value.slice(0,100);changed();};$('clearEvents').onclick=()=>{world.events=[];changed();renderEvents();};$('newBlank').onclick=()=>{modal('Start with a blank canvas?','<div class="dialog-actions"><button id="cancelNew">Cancel</button><button id="confirmNew" class="primary">New blank canvas</button></div>');$('cancelNew').onclick=()=>$('dialog').close();$('confirmNew').onclick=()=>{setRunning(false);const currentId=collaboration?.active()?world.id:null,fresh=createWorld();if(currentId)fresh.id=currentId;world=fresh;guideOpen=false;zoneId=null;entityId=null;toolId=null;baseline=null;undo=[];redo=[];pan={x:0,y:0};zoom=1;imageCache.clear();librariesInitialized=false;changed();switchView('board');refresh();$('dialog').close();};};
+$('projectName').oninput=e=>{world.name=e.target.value.slice(0,100);changed();};$('clearEvents').onclick=()=>{world.events=[];changed();renderEvents();};
 $('help').onclick=()=>modal('Your simulation whiteboard',`<p><b>Object types:</b> Create a reusable object. Choose a basic color or upload PNG/JPEG artwork. Defaults are monochrome. Collision, movement, tags, and appearance are independent settings. Solid, liquid, and moving-object presets only set starting flags.</p><p><b>Stats:</b> Define any named number with a minimum, maximum, and starting value. There are no built-in survival bars. Values are clamped to your range.</p><p><b>Rules:</b> On interaction, contact, or each tick, read a condition and apply an effect to Self or Other. Effects can change a stat, add/remove a tag, transfer material to a surface, move surface material inside, or remove an object. Contact rules repeat each tick.</p><p><b>Build an interaction chain:</b> Create a material object type. Give it an On contact → Other → Transfer supply onto surface rule. On another object type, add an Every tick → Self → Move surface material inside rule using that material. Then add a rule comparing internal material quantity and changing any custom stat you defined. No species-specific code is needed.</p><p><b>Utility:</b> Add decisions using your stats. Score low or high values, set a weight, then choose idle, movement, or a find → move → interact branch. The highest score wins. This version uses fixed action branches; arbitrary behavior-tree node authoring is still future work.</p><p><b>Board:</b> Draw with your object types; Select to inspect an instance. Click stacked instances repeatedly to cycle them. Ctrl+Z undoes edits. Manual interaction uses the selected object and an adjacent target. Objects share cells unless both have collision.</p><p><b>Persistence:</b> Save stores definitions, instances, rules, and uploaded artwork on the backend. Export/import JSON provides portable backups. The current 64 × 44 board supports 500 instances, 100 object types, and 50 stats; projects can be up to 12 MB. Simulation runs in the open tab. Legacy v0.1 projects remain available as backups in Projects.</p>`,'QUICK GUIDE');
 for(const id of ['newTool','createTool','emptyCreate','libraryNewTool'])$(id).onclick=()=>editTool();for(const id of ['newStat','quickStat'])$(id).onclick=()=>editStat();$('newRule').onclick=()=>chooseOwner(owner=>editRule(owner));$('closeDialog').onclick=()=>{$('dialog').close();collaboration?.setPresence({editingKind:undefined,editingId:undefined});};$('dialog').addEventListener?.('close',()=>collaboration?.setPresence({editingKind:undefined,editingId:undefined}));document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>switchView(b.dataset.view));
 window.addEventListener('keydown',e=>{if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)||$('dialog').open||projectHome&&!projectHome.inEditor())return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();doUndo(e.shiftKey);return;}if(e.key==='1')switchView('board');const modes={v:'select',b:'draw',e:'erase',h:'pan'};if(modes[e.key.toLowerCase()])setMode(modes[e.key.toLowerCase()]);if(e.code==='Space'){e.preventDefault();setRunning(!running);}if(e.key==='Escape'){entityId=null;setMode('select');renderInspector();requestDraw();}});window.addEventListener('beforeunload',e=>{if(dirty&&(!projectHome||projectHome.inEditor())&&(!collaboration?.active()||collaboration.hasPendingEdits())){e.preventDefault();e.returnValue='';}});new ResizeObserver(requestDraw).observe($('boardWrap'));setMode('select');refresh();
@@ -8111,7 +8118,7 @@ function treeVisible(){return view==='behavior'||isSplitWorkspace();}
 function updateWorkspace(){const active=isSplitWorkspace();$('editorLayout').classList.toggle('split-active',active);$('editorLayout').classList.toggle('inspector-open',active&&splitInspector);$('simulationWorkspace').classList.toggle('split-mode',active);$('simulationWorkspace').classList.toggle('hidden',!['board','behavior'].includes(view));for(const k of ['board','tools','stats','rules','tags','behavior','history','creatures','zones','directors'])$(k+'View').classList.toggle('hidden',!(k===view||active&&['board','behavior'].includes(k)));$('toggleSplit').ariaPressed=String(splitEnabled);$('toggleInspector').classList.toggle('hidden',!active);$('toggleInspector').ariaPressed=String(splitInspector);$('toggleInspector').textContent=splitInspector?'Hide inspector':'Show inspector';}
 $('toggleSplit').onclick=()=>{splitEnabled=!splitEnabled;switchView(['board','behavior'].includes(view)?view:'board');requestDraw();};$('toggleInspector').onclick=()=>{splitInspector=!splitInspector;updateWorkspace();requestDraw();};
 
-const ANALYTICS_CONSENT_KEY='prototeer.analytics-consent.v1',ANALYTICS_PARTICIPANT_KEY='prototeer.analytics-participant.v1',ANALYTICS_UI_VERSION='dev-2026-11-23-board-cards';
+const ANALYTICS_CONSENT_KEY='prototeer.analytics-consent.v1',ANALYTICS_PARTICIPANT_KEY='prototeer.analytics-participant.v1',ANALYTICS_UI_VERSION='dev-2026-11-23-add-board';
 const analyticsSessionId=('session_'+(crypto.randomUUID?.()??`${Date.now()}_${Math.random().toString(36).slice(2)}`)).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,100);
 const analyticsPanel=()=>({tools:'object-types',zones:'zones',creatures:'creatures',stats:'stats',rules:'interaction-rules',tags:'tags',behavior:'behavior-tree',directors:'directors',history:'history',board:'board'}[view]??'unknown');
 const allowedAnalyticsControls=()=>[...document.querySelectorAll('[id]')].map(element=>element.id).filter(id=>/^[A-Za-z][A-Za-z0-9_-]{0,79}$/.test(id));
@@ -8214,7 +8221,6 @@ if(startsInLobby){
     copy:copyText,download,toast,
     record:(kind,details)=>analytics?.record(kind,details),
   });
-  $('newBlank').onclick=projectHome.newProject;
   $('projects').onclick=projectHome.lobby;
   $('reloadHouse').onclick=projectHome.launchDemo;
 }

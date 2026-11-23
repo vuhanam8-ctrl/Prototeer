@@ -73,6 +73,7 @@
       for (const id of ['frontLobby', 'projectLobby', 'projectPage', 'editorShell']) $(id).hidden = id !== page;
       if (page !== 'projectPage') boardRender++;
       $('editorBackToProject').hidden = !project;
+      $('editorAddBoard').hidden = !project || project.role === 'viewer';
       $('projectName').setAttribute('aria-label', project ? 'Board name' : 'Project name');
     }
 
@@ -289,6 +290,13 @@
       inEditor = false;
     }
 
+    async function returnToProject() {
+      await leaveWorkspace();
+      show('projectPage');
+      setRoute(routeFor(project));
+      renderBoards();
+    }
+
     function openNameDialog() {
       $('projectNameInput').value = '';
       status('projectNameStatus');
@@ -330,8 +338,10 @@
         rememberLocal(updated);
         project = updated;
       }
+      const boardId = pendingBoard.id;
       pendingBoard = null;
       renderBoards();
+      return boardId;
     }
 
     async function publishProject() {
@@ -457,11 +467,12 @@
     $('frontDemo').onclick = $('lobbyDemo').onclick = launchDemo;
     $('projectAddBoard').onclick = exclusive('projectPageStatus', addBoard);
     $('projectBackToLobby').onclick = exclusive('projectPageStatus', showFront);
-    $('editorBackToProject').onclick = exclusive('projectPageStatus', async () => {
-      await leaveWorkspace();
-      show('projectPage');
-      setRoute(routeFor(project));
-      renderBoards();
+    $('editorBackToProject').onclick = exclusive('projectPageStatus', returnToProject);
+    $('editorAddBoard').onclick = exclusive('projectPageStatus', async () => {
+      if (!project || project.role === 'viewer') return;
+      await returnToProject();
+      const boardId = await addBoard();
+      if (boardId) await showBoard(boardId);
     });
     $('projectInvite').onclick = inviteDialog;
     $('projectInviteClose').onclick = () => $('projectInviteDialog').close();
@@ -512,7 +523,6 @@
 
     void exclusive('frontStatus', restoreLocation)();
     return {
-      newProject: openNameDialog,
       launchDemo,
       isSharedBoard: () => Boolean(project?.shared && inEditor),
       lobby: exclusive('lobbyStatus', async () => { await leaveWorkspace(); await showLobby(); }),
@@ -521,10 +531,7 @@
         if (!project) return false;
         if (project.role !== 'owner') { toast('Only the project owner can create invite links.'); return true; }
         void exclusive('projectPageStatus', async () => {
-          await leaveWorkspace();
-          show('projectPage');
-          setRoute(routeFor(project));
-          renderBoards();
+          await returnToProject();
           inviteDialog();
         })();
         return true;

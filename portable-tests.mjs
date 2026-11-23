@@ -46,13 +46,13 @@ test('a named project opens Board 1 and independently saves its boards in the of
   editor.world().tools.push(tool);
   place(editor.world(), tool.id, 6, 7);
   get('step').click();
-  await get('save').onclick();
-  await get('editorBackToProject').onclick();
+  assert.equal(get('editorAddBoard').hidden, false);
+  await get('editorAddBoard').onclick();
   const manifestKey = Object.keys(localStorage).find(key => key.startsWith('prototeer.project-home.local.'));
   assert.match(JSON.parse(localStorage.getItem(manifestKey)).boards[0].preview, /^0+[1-9a-f]$/);
-  await get('projectAddBoard').onclick();
   assert.deepEqual(boards().map(button => button.textContent), ['Board 1', 'Board 2']);
-  await boards()[1].onclick();
+  assert.equal(get('editorShell').hidden, false);
+  assert.equal(editor.world().name, 'Board 2');
   assert.notEqual(editor.world().id, firstId);
   assert.equal(editor.world().tick, 0);
   await get('editorBackToProject').onclick();
@@ -152,6 +152,7 @@ test('a fresh viewer opens every board from a project invite without editor cont
   await viewerBoards[1].onclick();
   assert.equal(viewer.get('editorShell').hidden, false);
   assert.equal(viewer.editor.world().name, 'Board 2');
+  assert.equal(viewer.get('editorAddBoard').hidden, true);
   assert.equal(viewer.get('save').disabled, true);
 });
 
