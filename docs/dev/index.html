@@ -79,13 +79,13 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
 
 .front-lobby-main {
   display: grid;
-  grid-template-columns: minmax(0, .88fr) minmax(0, 1.12fr);
-  align-items: center;
-  gap: clamp(28px, 6vw, 100px);
-  max-width: 1480px;
-  min-height: min(760px, 100svh);
-  padding: clamp(52px, 9vw, 136px) clamp(22px, 6vw, 96px);
-  margin-inline: auto;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  align-content: center;
+  gap: clamp(26px, 4.4svh, 48px);
+  min-height: 100svh;
+  padding: clamp(28px, 5svh, 52px) clamp(18px, 4vw, 64px);
+  text-align: center;
   background: transparent;
 }
 
@@ -97,8 +97,9 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
 }
 
 .front-lobby-copy .project-hub-actions {
+  justify-content: center;
   gap: 12px;
-  margin-top: clamp(24px, 3vw, 38px);
+  margin-top: clamp(20px, 2.8svh, 32px);
 }
 
 .front-lobby-copy button {
@@ -108,7 +109,7 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
 
 .front-lobby-scene {
   position: relative;
-  align-self: center;
+  width: min(100%, 920px, 99svh);
   padding: clamp(10px, 1.5vw, 22px);
   border: 1px solid #414852;
   border-radius: 16px;
@@ -190,9 +191,9 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
 }
 
 .project-hub-main {
-  max-width: 1240px;
+  max-width: 1760px;
   margin: 0 auto;
-  padding: clamp(28px, 6vw, 76px) clamp(16px, 4vw, 48px) 72px;
+  padding: clamp(26px, 4vw, 60px) clamp(16px, 3.5vw, 56px) 64px;
 }
 
 .project-hub-heading, .project-hub-actions {
@@ -219,7 +220,7 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
 }
 
 .project-board-heading {
-  margin-top: clamp(35px, 5vw, 64px);
+  margin-top: clamp(24px, 3vw, 48px);
   padding-top: 24px;
   border-top: 1px solid var(--line);
 }
@@ -241,8 +242,8 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
 
 .project-hub-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, max(400px, calc((100% - 64px) / 3))), 1fr));
+  gap: clamp(18px, 2.5vw, 32px);
   list-style: none;
   margin: 22px 0 0;
   padding: 0;
@@ -258,11 +259,13 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
   align-items: flex-start;
   justify-content: center;
   gap: 4px;
-  min-height: 76px;
+  min-height: clamp(124px, 17vw, 210px);
   width: 100%;
   height: 100%;
-  padding: 14px 16px;
+  padding: clamp(18px, 3vw, 36px);
   text-align: start;
+  font-size: clamp(17px, 2vw, 25px);
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 
@@ -270,22 +273,17 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
   color: var(--muted);
 }
 
-#projectPage .project-hub-main {
-  max-width: 1400px;
-}
-
 #projectPageTitle {
   font-size: clamp(33px, 5vw, 58px);
 }
 
 #projectBoardList {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 294px), 1fr));
-  gap: clamp(18px, 3vw, 32px);
   margin-top: 26px;
 }
 
 #projectBoardList .board-card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr;
   gap: 0;
   padding: 0;
@@ -311,7 +309,8 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
   width: 100%;
   height: auto;
   aspect-ratio: 16 / 10;
-  object-fit: cover;
+  max-height: clamp(250px, 48svh, 500px);
+  object-fit: contain;
   border-bottom: 1px solid #424954;
   background:
     linear-gradient(90deg, #57616f50 1px, transparent 1px),
@@ -321,9 +320,9 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
 
 .board-card-title {
   align-self: center;
-  padding: 15px 18px;
+  padding: clamp(16px, 2vw, 28px);
   color: #f0f2f6;
-  font-size: 16px;
+  font-size: clamp(17px, 1.8vw, 23px);
   font-weight: 600;
   line-height: 1.4;
   overflow-wrap: anywhere;
@@ -387,18 +386,6 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
   }
 }
 
-@media (max-width: 760px) {
-  .front-lobby-main {
-    grid-template-columns: minmax(0, 1fr);
-    align-content: center;
-    min-height: auto;
-  }
-
-  .front-lobby-scene {
-    width: min(100%, 540px);
-  }
-}
-
 </style></head><body>
 <section id="frontLobby" class="project-hub front-lobby" aria-labelledby="frontTitle" data-analytics-region="projects">
   <main class="front-lobby-main">
@@ -447,7 +434,7 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
 <section id="projectPage" class="project-hub" aria-labelledby="projectPageTitle" data-analytics-region="projects" hidden>
   <div class="project-hub-top">
     <span class="brand">prototeer</span>
-    <button id="projectBackToLobby" type="button">Back to projects</button>
+    <button id="projectBackToLobby" type="button">Back to lobby</button>
   </div>
   <main class="project-hub-main">
     <div class="project-hub-heading">
@@ -7347,7 +7334,7 @@ globalThis.convex=convex;
     });
     $('frontDemo').onclick = $('lobbyDemo').onclick = launchDemo;
     $('projectAddBoard').onclick = exclusive('projectPageStatus', addBoard);
-    $('projectBackToLobby').onclick = exclusive('projectPageStatus', showLobby);
+    $('projectBackToLobby').onclick = exclusive('projectPageStatus', showFront);
     $('editorBackToProject').onclick = exclusive('projectPageStatus', async () => {
       await leaveWorkspace();
       show('projectPage');
@@ -8114,7 +8101,7 @@ function treeVisible(){return view==='behavior'||isSplitWorkspace();}
 function updateWorkspace(){const active=isSplitWorkspace();$('editorLayout').classList.toggle('split-active',active);$('editorLayout').classList.toggle('inspector-open',active&&splitInspector);$('simulationWorkspace').classList.toggle('split-mode',active);$('simulationWorkspace').classList.toggle('hidden',!['board','behavior'].includes(view));for(const k of ['board','tools','stats','rules','tags','behavior','history','creatures','zones','directors'])$(k+'View').classList.toggle('hidden',!(k===view||active&&['board','behavior'].includes(k)));$('toggleSplit').ariaPressed=String(splitEnabled);$('toggleInspector').classList.toggle('hidden',!active);$('toggleInspector').ariaPressed=String(splitInspector);$('toggleInspector').textContent=splitInspector?'Hide inspector':'Show inspector';}
 $('toggleSplit').onclick=()=>{splitEnabled=!splitEnabled;switchView(['board','behavior'].includes(view)?view:'board');requestDraw();};$('toggleInspector').onclick=()=>{splitInspector=!splitInspector;updateWorkspace();requestDraw();};
 
-const ANALYTICS_CONSENT_KEY='prototeer.analytics-consent.v1',ANALYTICS_PARTICIPANT_KEY='prototeer.analytics-participant.v1',ANALYTICS_UI_VERSION='dev-2026-11-23-wordmark';
+const ANALYTICS_CONSENT_KEY='prototeer.analytics-consent.v1',ANALYTICS_PARTICIPANT_KEY='prototeer.analytics-participant.v1',ANALYTICS_UI_VERSION='dev-2026-11-23-centered';
 const analyticsSessionId=('session_'+(crypto.randomUUID?.()??`${Date.now()}_${Math.random().toString(36).slice(2)}`)).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,100);
 const analyticsPanel=()=>({tools:'object-types',zones:'zones',creatures:'creatures',stats:'stats',rules:'interaction-rules',tags:'tags',behavior:'behavior-tree',directors:'directors',history:'history',board:'board'}[view]??'unknown');
 const allowedAnalyticsControls=()=>[...document.querySelectorAll('[id]')].map(element=>element.id).filter(id=>/^[A-Za-z][A-Za-z0-9_-]{0,79}$/.test(id));

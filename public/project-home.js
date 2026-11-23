@@ -450,7 +450,7 @@
     });
     $('frontDemo').onclick = $('lobbyDemo').onclick = launchDemo;
     $('projectAddBoard').onclick = exclusive('projectPageStatus', addBoard);
-    $('projectBackToLobby').onclick = exclusive('projectPageStatus', showLobby);
+    $('projectBackToLobby').onclick = exclusive('projectPageStatus', showFront);
     $('editorBackToProject').onclick = exclusive('projectPageStatus', async () => {
       await leaveWorkspace();
       show('projectPage');

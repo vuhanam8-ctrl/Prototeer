@@ -59,6 +59,10 @@ test('a named project opens Board 1 and independently saves its boards in the of
   await boards()[0].onclick();
   assert.equal(editor.world().id, firstId);
   assert.equal(editor.world().tick, 1);
+  await get('editorBackToProject').onclick();
+  await get('projectBackToLobby').onclick();
+  assert.equal(get('frontLobby').hidden, false);
+  assert.equal(get('projectLobby').hidden, true);
   const reopened = boot();
   await settle();
   await reopened.get('frontProjects').onclick();
