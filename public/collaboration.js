@@ -253,8 +253,9 @@
       shadow = ops.apply(shadow, materialized) || shadow;
       versions[operation.resourceKey] = operation.resultingVersion ?? versions[operation.resourceKey] ?? 0;
       revision = Math.max(revision, operation.sequence || 0);
-      if (notify && operation.sessionId !== guest.sessionId) hooks.onRemoteOperation?.(clone(materialized), clone(shadow));
-      return operation.sessionId !== guest.sessionId ? materialized : null;
+      const remote = operation.sessionId !== guest.sessionId || operation.opId.startsWith('workspace-rename:');
+      if (notify && remote) hooks.onRemoteOperation?.(clone(materialized), clone(shadow));
+      return remote ? materialized : null;
     }
 
     async function processTail(result) {
@@ -809,6 +810,12 @@
         return requireClient().mutation(apiRoot.workspaces.addBoard, {
           ...access, sessionId: guest.sessionId, board: boardSnapshot(boardId, world),
         });
+      },
+      async renameBoard(token, publicId, name) {
+        return requireClient().mutation(apiRoot.workspaces.renameBoard, { publicId, token, name, sessionId: guest.sessionId });
+      },
+      async deleteBoard(token, publicId) {
+        return requireClient().mutation(apiRoot.workspaces.deleteBoard, { publicId, token });
       },
       async updateDraftBoard(access, boardId, world) {
         return requireClient().mutation(apiRoot.workspaces.updateDraftBoard, {

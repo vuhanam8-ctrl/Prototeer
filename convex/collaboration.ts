@@ -1,7 +1,10 @@
 import { mutation, query, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v, ConvexError } from "convex/values";
+import type { Value } from "convex/values";
 import { requireAccess, requireEditor, safeOpId, safeSessionId } from "./lib/access";
+import type { Doc } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
 
 const OPERATION_PAGE_SIZE = 10;
 const MAX_PROJECT_PRESENCE = 100;
@@ -91,103 +94,117 @@ export const submitOperation = mutation({
     validateOperation(args.kind, args.resourceKey, args.payload);
     const { project, capability } = await requireAccess(ctx, args.publicId, args.token);
     requireEditor(capability.role);
-    if (project.simulationStatus !== "paused") throw new ConvexError({ code: "pause_before_editing" });
-    const duplicate = await ctx.db
-      .query("projectOperations")
-      .withIndex("by_project_op", (q) => q.eq("projectId", project._id).eq("opId", args.opId))
-      .unique();
-    if (duplicate) {
-      return {
-        status: "duplicate" as const,
-        revision: duplicate.sequence,
-        version: duplicate.resultingVersion,
-      };
-    }
-    if (project.currentRevision - project.snapshotRevision >= 1000) {
-      throw new ConvexError({ code: "checkpoint_required" });
-    }
-    const current = await ctx.db
-      .query("resourceVersions")
-      .withIndex("by_project_resource", (q) =>
-        q.eq("projectId", project._id).eq("resourceKey", args.resourceKey),
-      )
-      .unique();
-    const currentVersion = current?.version ?? 0;
-    const mergeable = args.kind === "paintZoneCells";
-    if (!mergeable && args.expectedVersion !== currentVersion) {
-      return {
-        status: "conflict" as const,
-        revision: project.currentRevision,
-        version: currentVersion,
-      };
-    }
-    const nextVersion = currentVersion + 1;
-    const now = Date.now();
-    if (current) {
-      await ctx.db.patch(current._id, {
-        version: nextVersion,
-        deleted: args.kind === "deleteRecord",
-        updatedAt: now,
-        updatedBy: args.sessionId,
-      });
-    } else {
-      const resourceCount = await ctx.db
-        .query("resourceVersions")
-        .withIndex("by_project_resource", (q) => q.eq("projectId", project._id))
-        .take(MAX_RESOURCE_VERSIONS);
-      if (resourceCount.length >= MAX_RESOURCE_VERSIONS) {
-        throw new ConvexError({ code: "project_resource_limit_reached" });
-      }
-      await ctx.db.insert("resourceVersions", {
-        projectId: project._id,
-        resourceKey: args.resourceKey,
-        version: nextVersion,
-        deleted: args.kind === "deleteRecord",
-        updatedAt: now,
-        updatedBy: args.sessionId,
-      });
-    }
-    const sequence = project.currentRevision + 1;
-    await ctx.db.insert("projectOperations", {
-      projectId: project._id,
-      sequence,
-      opId: args.opId,
-      sessionId: args.sessionId,
-      kind: args.kind,
-      resourceKey: args.resourceKey,
-      expectedVersion: args.expectedVersion,
-      resultingVersion: nextVersion,
-      payload: args.payload,
-      createdAt: now,
-    });
-    const patch: {
-      currentRevision: number;
-      updatedAt: number;
-      name?: string;
-      simulationSnapshotId?: undefined;
-      simulationSourceRevision?: undefined;
-      simulationTick?: number;
-    } = {
-      currentRevision: sequence,
-      updatedAt: now,
-    };
-    if (args.kind === "renameProject" && object(args.payload)) patch.name = String(args.payload.name).trim().slice(0, 100);
-    const staleSimulationFrame = project.simulationSnapshotId;
-    if (staleSimulationFrame) {
-      patch.simulationSnapshotId = undefined;
-      patch.simulationSourceRevision = undefined;
-      patch.simulationTick = 0;
-    }
-    await ctx.db.patch(project._id, patch);
-    if (staleSimulationFrame && staleSimulationFrame !== project.currentSnapshotId) {
-      await ctx.scheduler.runAfter(0, internal.projects.deleteDetachedSnapshot, {
-        projectId: project._id,
-        revisionId: staleSimulationFrame,
-      });
-    }
-    return { status: "accepted" as const, revision: sequence, version: nextVersion };
+    return recordOperation(ctx, project, args);
   },
 });
+
+type BoardOperation = {
+  sessionId: string;
+  opId: string;
+  kind: string;
+  resourceKey: string;
+  expectedVersion?: number;
+  payload: Value;
+};
+
+export async function recordOperation(ctx: MutationCtx, project: Doc<"projects">, args: BoardOperation) {
+  if (project.simulationStatus !== "paused") throw new ConvexError({ code: "pause_before_editing" });
+  const duplicate = await ctx.db
+    .query("projectOperations")
+    .withIndex("by_project_op", (q) => q.eq("projectId", project._id).eq("opId", args.opId))
+    .unique();
+  if (duplicate) {
+    return {
+      status: "duplicate" as const,
+      revision: duplicate.sequence,
+      version: duplicate.resultingVersion,
+    };
+  }
+  if (project.currentRevision - project.snapshotRevision >= 1000) {
+    throw new ConvexError({ code: "checkpoint_required" });
+  }
+  const current = await ctx.db
+    .query("resourceVersions")
+    .withIndex("by_project_resource", (q) =>
+      q.eq("projectId", project._id).eq("resourceKey", args.resourceKey),
+    )
+    .unique();
+  const currentVersion = current?.version ?? 0;
+  const expectedVersion = args.expectedVersion ?? currentVersion;
+  const mergeable = args.kind === "paintZoneCells";
+  if (!mergeable && expectedVersion !== currentVersion) {
+    return {
+      status: "conflict" as const,
+      revision: project.currentRevision,
+      version: currentVersion,
+    };
+  }
+  const nextVersion = currentVersion + 1;
+  const now = Date.now();
+  if (current) {
+    await ctx.db.patch(current._id, {
+      version: nextVersion,
+      deleted: args.kind === "deleteRecord",
+      updatedAt: now,
+      updatedBy: args.sessionId,
+    });
+  } else {
+    const resourceCount = await ctx.db
+      .query("resourceVersions")
+      .withIndex("by_project_resource", (q) => q.eq("projectId", project._id))
+      .take(MAX_RESOURCE_VERSIONS);
+    if (resourceCount.length >= MAX_RESOURCE_VERSIONS) {
+      throw new ConvexError({ code: "project_resource_limit_reached" });
+    }
+    await ctx.db.insert("resourceVersions", {
+      projectId: project._id,
+      resourceKey: args.resourceKey,
+      version: nextVersion,
+      deleted: args.kind === "deleteRecord",
+      updatedAt: now,
+      updatedBy: args.sessionId,
+    });
+  }
+  const sequence = project.currentRevision + 1;
+  await ctx.db.insert("projectOperations", {
+    projectId: project._id,
+    sequence,
+    opId: args.opId,
+    sessionId: args.sessionId,
+    kind: args.kind,
+    resourceKey: args.resourceKey,
+    expectedVersion,
+    resultingVersion: nextVersion,
+    payload: args.payload,
+    createdAt: now,
+  });
+  const patch: {
+    currentRevision: number;
+    updatedAt: number;
+    name?: string;
+    simulationSnapshotId?: undefined;
+    simulationSourceRevision?: undefined;
+    simulationTick?: number;
+  } = {
+    currentRevision: sequence,
+    updatedAt: now,
+  };
+  if (args.kind === "renameProject" && object(args.payload)) patch.name = String(args.payload.name).trim().slice(0, 100);
+  const staleSimulationFrame = project.simulationSnapshotId;
+  if (staleSimulationFrame) {
+    patch.simulationSnapshotId = undefined;
+    patch.simulationSourceRevision = undefined;
+    patch.simulationTick = 0;
+  }
+  await ctx.db.patch(project._id, patch);
+  if (staleSimulationFrame && staleSimulationFrame !== project.currentSnapshotId) {
+    await ctx.scheduler.runAfter(0, internal.projects.deleteDetachedSnapshot, {
+      projectId: project._id,
+      revisionId: staleSimulationFrame,
+    });
+  }
+  return { status: "accepted" as const, revision: sequence, version: nextVersion };
+}
 
 export const tail = query({
   args: { publicId: v.string(), token: v.string(), after: v.number() },

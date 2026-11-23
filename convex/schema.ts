@@ -34,6 +34,7 @@ export default defineSchema({
     currentSnapshotId: v.optional(v.id("projectRevisions")),
     createdAt: v.number(),
     updatedAt: v.number(),
+    deletedAt: v.optional(v.number()),
     simulationStatus,
     simulationGeneration: v.number(),
     simulationController: v.optional(v.string()),
@@ -43,7 +44,7 @@ export default defineSchema({
     simulationSourceRevision: v.optional(v.number()),
   })
     .index("by_public_id", ["publicId"])
-    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace", ["workspaceId", "deletedAt"])
     .index("by_updated_at", ["updatedAt"])
     .index("by_simulation_lease", ["simulationStatus", "simulationLeaseUntil"]),
 

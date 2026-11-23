@@ -285,11 +285,18 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
   max-inline-size: 560px;
 }
 
+#projectBoardList > li {
+  display: flex;
+  flex-direction: column;
+}
+
 #projectBoardList .board-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr;
   gap: 0;
+  height: auto;
+  flex: 1;
   padding: 0;
   overflow: hidden;
   border: 1px solid #4b5260;
@@ -330,6 +337,13 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
   font-weight: 600;
   line-height: 1.4;
   overflow-wrap: anywhere;
+}
+
+.board-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 2px 0;
 }
 
 .project-hub-dialog {
@@ -450,6 +464,7 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
       <button id="projectAddBoard" type="button" class="primary">Add Board</button>
     </div>
     <p id="projectPageStatus" class="project-hub-status" role="status"></p>
+    <p id="projectBoardsEmpty" class="project-hub-status" hidden>No boards yet.</p>
     <ul id="projectBoardList" class="project-hub-list" aria-labelledby="projectBoardHeading"></ul>
   </main>
 </section>
@@ -480,6 +495,30 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
     <div class="project-hub-actions">
       <button id="projectNameCancel" type="button">Cancel</button>
       <button id="projectNameSubmit" type="submit" class="primary">Create project</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="boardNameDialog" class="project-hub-dialog" aria-labelledby="boardNameTitle" data-analytics-region="dialog">
+  <h2 id="boardNameTitle">Add Board</h2>
+  <form id="boardNameForm">
+    <label class="field" for="boardNameInput">Board name
+      <input id="boardNameInput" type="text" maxlength="100" required autofocus>
+    </label>
+    <p id="boardNameStatus" class="project-hub-status" role="status"></p>
+    <div class="project-hub-actions">
+      <button id="boardNameCancel" type="button">Cancel</button>
+      <button id="boardNameSubmit" type="submit" class="primary">Create board</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="boardDeleteDialog" class="project-hub-dialog" aria-labelledby="boardDeleteTitle" data-analytics-region="dialog">
+  <h2 id="boardDeleteTitle">Delete board?</h2>
+  <p id="boardDeleteCopy"></p>
+  <form id="boardDeleteForm">
+    <p id="boardDeleteStatus" class="project-hub-status" role="status"></p>
+    <div class="project-hub-actions">
+      <button id="boardDeleteCancel" type="button" autofocus>Cancel</button>
+      <button id="boardDeleteSubmit" type="submit" class="danger">Delete board</button>
     </div>
   </form>
 </dialog>
@@ -6175,8 +6214,9 @@ globalThis.convex=convex;
       shadow = ops.apply(shadow, materialized) || shadow;
       versions[operation.resourceKey] = operation.resultingVersion ?? versions[operation.resourceKey] ?? 0;
       revision = Math.max(revision, operation.sequence || 0);
-      if (notify && operation.sessionId !== guest.sessionId) hooks.onRemoteOperation?.(clone(materialized), clone(shadow));
-      return operation.sessionId !== guest.sessionId ? materialized : null;
+      const remote = operation.sessionId !== guest.sessionId || operation.opId.startsWith('workspace-rename:');
+      if (notify && remote) hooks.onRemoteOperation?.(clone(materialized), clone(shadow));
+      return remote ? materialized : null;
     }
 
     async function processTail(result) {
@@ -6732,6 +6772,12 @@ globalThis.convex=convex;
           ...access, sessionId: guest.sessionId, board: boardSnapshot(boardId, world),
         });
       },
+      async renameBoard(token, publicId, name) {
+        return requireClient().mutation(apiRoot.workspaces.renameBoard, { publicId, token, name, sessionId: guest.sessionId });
+      },
+      async deleteBoard(token, publicId) {
+        return requireClient().mutation(apiRoot.workspaces.deleteBoard, { publicId, token });
+      },
       async updateDraftBoard(access, boardId, world) {
         return requireClient().mutation(apiRoot.workspaces.updateDraftBoard, {
           ...access, sessionId: guest.sessionId, board: boardSnapshot(boardId, world),
@@ -6904,6 +6950,8 @@ globalThis.convex=convex;
     let subscription;
     let pendingBoard = null;
     let boardRender = 0;
+    let boardNameAction = null;
+    let boardToDelete = null;
 
     function stored(key) {
       try { return JSON.parse(global.localStorage.getItem(key)); }
@@ -6973,7 +7021,7 @@ globalThis.convex=convex;
       button.onclick = onClick;
       item.append(button);
       list.append(item);
-      return button;
+      return { item, button };
     }
 
     function status(id, message = '') {
@@ -6998,6 +7046,8 @@ globalThis.convex=convex;
             project_too_large: 'A board exceeds 12 MB. Use smaller artwork files before sharing.',
             board_limit_reached: 'This project already has 50 boards.',
             access_link_limit_reached: 'This project has reached its invite link limit.',
+            pause_before_editing: 'Pause the board before renaming it.',
+            checkpoint_required: 'Open the board and save it before renaming.',
           }[code] ?? (typeof code === 'string' && /[ .]/.test(code) && !code.includes('[CONVEX')
             ? code : 'Could not complete this action. Try again.');
           status(statusId === 'frontStatus' && !$('projectPage').hidden ? 'projectPageStatus' : statusId, message);
@@ -7038,7 +7088,9 @@ globalThis.convex=convex;
       }
       try {
         const saved = await api('projects');
-        const grouped = new Set(local.flatMap(entry => entry.boards.map(board => board.publicId)));
+        const grouped = new Set(local.flatMap(entry => [
+          ...entry.boards.map(board => board.publicId), ...(entry.deletedBoardIds ?? []),
+        ]));
         for (const world of saved) {
           if (grouped.has(world.id)) continue;
           const entry = {
@@ -7078,12 +7130,13 @@ globalThis.convex=convex;
       $('projectPageTitle').textContent = project.name;
       $('projectAddBoard').hidden = project.role === 'viewer';
       $('projectInvite').hidden = project.role !== 'owner';
+      $('projectBoardsEmpty').hidden = project.boards.length > 0;
       const list = $('projectBoardList');
       list.replaceChildren();
       const missing = [];
       const render = ++boardRender;
       for (const board of project.boards) {
-        const button = buttonRow(list, board.name, exclusive('projectPageStatus', () => showBoard(board.publicId)));
+        const { item, button } = buttonRow(list, board.name, exclusive('projectPageStatus', () => showBoard(board.publicId)));
         button.classList.add('board-card');
         const canvas = global.document.createElement('canvas');
         canvas.classList.add('board-card-preview');
@@ -7094,6 +7147,21 @@ globalThis.convex=convex;
         title.classList.add('board-card-title');
         title.textContent = board.name;
         button.replaceChildren(canvas, title);
+        if (project.role !== 'viewer') {
+          const actions = global.document.createElement('div');
+          actions.classList.add('board-card-actions');
+          const actionButton = (label, onClick) => {
+            const action = global.document.createElement('button');
+            action.type = 'button';
+            action.textContent = label;
+            action.setAttribute('aria-label', label + ' ' + board.name);
+            action.onclick = onClick;
+            actions.append(action);
+          };
+          actionButton('Rename', () => showBoardNameDialog(board));
+          if (project.role === 'owner') actionButton('Delete', () => showBoardDeleteDialog(board));
+          item.append(actions);
+        }
         global.PrototeerBoardPreview?.update(canvas, board.preview);
         if (!project.shared && previewOf && typeof board.preview !== 'string') missing.push({ board, canvas });
       }
@@ -7205,20 +7273,47 @@ globalThis.convex=convex;
       await openProject(entry);
     }
 
-    async function addBoard() {
-      if (!project || project.role === 'viewer') return;
-      const entry = project.shared ? project : stored(localPrefix + project.publicId) ?? project;
-      if (entry.boards.length >= 50) throw new Error('board_limit_reached');
+    function availableBoardName(entry) {
       const names = new Set(entry.boards.map(board => board.name));
       let number = 1;
       while (names.has('Board ' + number)) number++;
-      pendingBoard ??= createBoard('Board ' + number);
+      return 'Board ' + number;
+    }
+
+    function showBoardNameDialog(board = null, openAfter = false) {
+      if (!project || project.role === 'viewer') return;
+      boardNameAction = { board, openAfter };
+      const input = $('boardNameInput');
+      input.value = board?.name ?? pendingBoard?.name ?? availableBoardName(project);
+      $('boardNameTitle').textContent = board ? 'Rename Board' : 'Add Board';
+      $('boardNameSubmit').textContent = board ? 'Rename board' : 'Create board';
+      status('boardNameStatus');
+      $('boardNameDialog').showModal();
+      input.focus();
+      input.select?.();
+    }
+
+    function showBoardDeleteDialog(board) {
+      if (project?.role !== 'owner') return;
+      boardToDelete = board;
+      $('boardDeleteCopy').textContent = 'Remove “' + board.name + '” from this project?';
+      status('boardDeleteStatus');
+      $('boardDeleteDialog').showModal();
+    }
+
+    async function addBoard(name) {
+      if (!project || project.role === 'viewer') return;
+      const entry = project.shared ? project : stored(localPrefix + project.publicId) ?? project;
+      if (entry.boards.length >= 50) throw new Error('board_limit_reached');
+      pendingBoard ??= createBoard(name);
       if (entry.shared) {
-        await online.addBoard(accessOf(entry), pendingBoard.id, pendingBoard);
+        const added = await online.addBoard(accessOf(entry), pendingBoard.id, pendingBoard);
+        if (added.name !== name) await online.renameBoard(entry.token, pendingBoard.id, name);
         const current = await online.open(accessOf(entry));
         project = { ...entry, ...current };
         rememberShared(project);
       } else {
+        pendingBoard.name = name;
         await saveBoard(pendingBoard);
         const latest = stored(localPrefix + entry.publicId) ?? entry;
         const updated = { ...latest, updatedAt: Date.now(),
@@ -7232,8 +7327,91 @@ globalThis.convex=convex;
       return boardId;
     }
 
+    async function renameBoard(board, name) {
+      if (board.name === name) return;
+      const entry = project;
+      if (entry.shared) {
+        const info = await online.renameBoard(entry.token, board.publicId, name);
+        project = { ...project, boards: project.boards.map(item => item.publicId === board.publicId ? info : item) };
+        rememberShared(project);
+      } else {
+        const world = await api('projects/' + board.publicId);
+        world.name = name;
+        await saveBoard(world);
+        updateBoardSummary(world);
+      }
+      renderBoards();
+    }
+
+    async function deleteBoard(board) {
+      const entry = project;
+      if (entry.shared) {
+        await online.deleteBoard(entry.token, board.publicId);
+        project = { ...project, boards: project.boards.filter(item => item.publicId !== board.publicId) };
+        rememberShared(project);
+      } else {
+        const latest = stored(localPrefix + entry.publicId) ?? entry;
+        const removed = {
+          ...latest, boards: latest.boards.filter(item => item.publicId !== board.publicId),
+          deletedBoardIds: [...new Set([...(latest.deletedBoardIds ?? []), board.publicId])],
+        };
+        rememberLocal(removed);
+        try {
+          await api('projects/' + board.publicId, { method: 'DELETE' });
+        } catch (error) {
+          const current = stored(localPrefix + entry.publicId) ?? removed;
+          const boards = [...current.boards];
+          const previousIndex = latest.boards.findIndex(item => item.publicId === board.publicId);
+          if (previousIndex >= 0 && !boards.some(item => item.publicId === board.publicId)) {
+            boards.splice(previousIndex, 0, latest.boards[previousIndex]);
+          }
+          project = { ...current, boards, deletedBoardIds: current.deletedBoardIds?.filter(id => id !== board.publicId) };
+          rememberLocal(project);
+          renderBoards();
+          throw error;
+        }
+        project = removed;
+      }
+      renderBoards();
+    }
+
+    function boardFeedback(message) {
+      status('projectPageStatus', message);
+      toast(message);
+    }
+
+    async function saveBoardName() {
+      const name = $('boardNameInput').value.trim();
+      if (!name) throw new Error('Enter a board name.');
+      const { board, openAfter } = boardNameAction;
+      if (board) {
+        await renameBoard(board, name);
+        $('boardNameDialog').close();
+        boardFeedback('Renamed board to “' + name + '”.');
+        return;
+      }
+      if (openAfter && inEditor) await returnToProject();
+      const id = await addBoard(name);
+      $('boardNameDialog').close();
+      if (!id) return;
+      boardFeedback('Added board “' + name + '”.');
+      if (openAfter) {
+        try { await showBoard(id); }
+        catch { status('projectPageStatus', 'Added “' + name + '”. Select it to try opening it again.'); }
+      }
+    }
+
+    async function confirmBoardDelete() {
+      if (project?.role !== 'owner' || !boardToDelete) return;
+      const board = boardToDelete;
+      await deleteBoard(board);
+      $('boardDeleteDialog').close();
+      boardFeedback('Deleted board “' + board.name + '”.');
+    }
+
     async function publishProject() {
       const entry = stored(localPrefix + project.publicId) ?? project;
+      if (!entry.boards.length) throw new Error('Add a board before inviting someone.');
       const endpoint = online.url();
       const upload = entry.upload?.backend === endpoint ? entry.upload : {
         publicId: online.token(24), token: online.token(), backend: endpoint, boardIds: {},
@@ -7243,6 +7421,18 @@ globalThis.convex=convex;
       const access = accessOf(upload);
       const boardIds = [];
       upload.snapshots ??= {};
+      let stagedProject;
+      if (Object.keys(upload.snapshots).length) {
+        try { stagedProject = await online.open(access); }
+        catch (error) { if ((error?.data?.code ?? error?.message) !== 'access_denied') throw error; }
+      }
+      if (stagedProject) {
+        const selected = new Set(entry.boards.map(board => upload.boardIds[board.publicId]));
+        const staged = new Set(Object.values(upload.boardIds));
+        for (const board of stagedProject.boards) {
+          if (staged.has(board.publicId) && !selected.has(board.publicId)) await online.deleteBoard(access.token, board.publicId);
+        }
+      }
       for (const board of entry.boards) {
         const world = await api('projects/' + board.publicId);
         const onlineId = upload.boardIds[board.publicId];
@@ -7251,7 +7441,7 @@ globalThis.convex=convex;
           upload.snapshots[onlineId] = fingerprint;
           rememberLocal({ ...entry, upload });
         }
-        if (!boardIds.length) await online.create(upload.publicId, upload.token, entry.name, onlineId, world);
+        if (!stagedProject && !boardIds.length) await online.create(upload.publicId, upload.token, entry.name, onlineId, world);
         else await online.addBoard(access, onlineId, world);
         if (upload.snapshots[onlineId] !== fingerprint) {
           await online.updateDraftBoard(access, onlineId, world);
@@ -7353,15 +7543,25 @@ globalThis.convex=convex;
       show('editorShell');
     });
     $('frontDemo').onclick = $('lobbyDemo').onclick = launchDemo;
-    $('projectAddBoard').onclick = exclusive('projectPageStatus', addBoard);
+    $('projectAddBoard').onclick = () => showBoardNameDialog();
     $('projectBackToLobby').onclick = exclusive('projectPageStatus', showFront);
     $('editorBackToProject').onclick = exclusive('projectPageStatus', returnToProject);
-    $('editorAddBoard').onclick = exclusive('projectPageStatus', async () => {
-      if (!project || project.role === 'viewer') return;
-      await returnToProject();
-      const boardId = await addBoard();
-      if (boardId) await showBoard(boardId);
-    });
+    $('editorAddBoard').onclick = () => showBoardNameDialog(null, true);
+    for (const [prefix, action] of [['boardName', saveBoardName], ['boardDelete', confirmBoardDelete]]) {
+      const dialog = $(prefix + 'Dialog');
+      $(prefix + 'Cancel').onclick = () => { if (!busy) dialog.close(); };
+      dialog.oncancel = event => { if (busy) event.preventDefault(); };
+      $(prefix + 'Form').onsubmit = event => {
+        event.preventDefault();
+        if (!dialog.open) return;
+        return exclusive(prefix + 'Status', async () => {
+          const submit = $(prefix + 'Submit');
+          submit.disabled = true;
+          try { await action(); }
+          finally { submit.disabled = false; }
+        })();
+      };
+    }
     $('projectInvite').onclick = inviteDialog;
     $('projectInviteClose').onclick = () => $('projectInviteDialog').close();
     $('projectInviteCopy').onclick = () => copy($('projectInviteLink').value);
@@ -7861,7 +8061,7 @@ function createProjectStore(factory,validate,maxBytes){
  function unavailable(){return new Error('Browser project storage is unavailable. Use Export and Import JSON to keep project files.');}
  function open(){if(!factory)return Promise.reject(unavailable());if(!opened)opened=new Promise((resolve,reject)=>{let req;try{req=factory.open('prototeer-development-projects',1);}catch{reject(unavailable());return;}req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('projects'))req.result.createObjectStore('projects',{keyPath:'id'});};req.onerror=()=>reject(unavailable());req.onblocked=()=>reject(unavailable());req.onsuccess=()=>{const db=req.result;db.onversionchange=()=>{db.close();opened=null;};resolve(db);};}).catch(e=>{opened=null;throw e;});return opened;}
  async function transaction(mode,action){const db=await open();return new Promise((resolve,reject)=>{let result;const tx=db.transaction('projects',mode);tx.oncomplete=()=>resolve(result);tx.onabort=()=>reject(tx.error??new Error('Project save failed. Use Export to keep a file backup.'));tx.onerror=()=>{};try{const req=action(tx.objectStore('projects'));req.onsuccess=()=>{result=req.result;};req.onerror=()=>{};}catch(e){try{tx.abort();}catch{}reject(e);}});}
- return {async request(path,options={}){const method=options.method??'GET';if(path==='projects'&&method==='GET'){const projects=await transaction('readonly',s=>s.getAll());return projects.map(p=>({id:p.id,name:p.name,tick:p.tick,year:p.year,updated:p.updated})).sort((a,b)=>b.updated.localeCompare(a.updated));}const match=/^projects\/([\w-]{1,80})$/.exec(path);if(!match)throw new Error('Unknown project operation.');const id=match[1];if(method==='GET'){const p=await transaction('readonly',s=>s.get(id));if(!p)throw new Error('Project not found in this browser.');return p;}if(method==='PUT'){const body=options.body;if(typeof body!=='string'||new TextEncoder().encode(body).length>maxBytes)throw new Error('Maximum project size is 12 MB.');let p;try{p=JSON.parse(body);}catch{throw new Error('Invalid project JSON.');}if(!validate(p)||p.id!==id)throw new Error('Invalid project.');p.updated=new Date().toISOString();await transaction('readwrite',s=>s.put(p));return {saved:true,id};}throw new Error('Unsupported project operation.');}};
+ return {async request(path,options={}){const method=options.method??'GET';if(path==='projects'&&method==='GET'){const projects=await transaction('readonly',s=>s.getAll());return projects.map(p=>({id:p.id,name:p.name,tick:p.tick,year:p.year,updated:p.updated})).sort((a,b)=>b.updated.localeCompare(a.updated));}const match=/^projects\/([\w-]{1,80})$/.exec(path);if(!match)throw new Error('Unknown project operation.');const id=match[1];if(method==='GET'){const p=await transaction('readonly',s=>s.get(id));if(!p)throw new Error('Project not found in this browser.');return p;}if(method==='DELETE'){await transaction('readwrite',s=>s.delete(id));return {deleted:true,id};}if(method==='PUT'){const body=options.body;if(typeof body!=='string'||new TextEncoder().encode(body).length>maxBytes)throw new Error('Maximum project size is 12 MB.');let p;try{p=JSON.parse(body);}catch{throw new Error('Invalid project JSON.');}if(!validate(p)||p.id!==id)throw new Error('Invalid project.');p.updated=new Date().toISOString();await transaction('readwrite',s=>s.put(p));return {saved:true,id};}throw new Error('Unsupported project operation.');}};
 }
 
 let storageFactory;try{storageFactory=globalThis.indexedDB;}catch{}globalThis.PrototeerStorage=createProjectStore(storageFactory,validWorld,MAX_BYTES);
@@ -8118,7 +8318,7 @@ function treeVisible(){return view==='behavior'||isSplitWorkspace();}
 function updateWorkspace(){const active=isSplitWorkspace();$('editorLayout').classList.toggle('split-active',active);$('editorLayout').classList.toggle('inspector-open',active&&splitInspector);$('simulationWorkspace').classList.toggle('split-mode',active);$('simulationWorkspace').classList.toggle('hidden',!['board','behavior'].includes(view));for(const k of ['board','tools','stats','rules','tags','behavior','history','creatures','zones','directors'])$(k+'View').classList.toggle('hidden',!(k===view||active&&['board','behavior'].includes(k)));$('toggleSplit').ariaPressed=String(splitEnabled);$('toggleInspector').classList.toggle('hidden',!active);$('toggleInspector').ariaPressed=String(splitInspector);$('toggleInspector').textContent=splitInspector?'Hide inspector':'Show inspector';}
 $('toggleSplit').onclick=()=>{splitEnabled=!splitEnabled;switchView(['board','behavior'].includes(view)?view:'board');requestDraw();};$('toggleInspector').onclick=()=>{splitInspector=!splitInspector;updateWorkspace();requestDraw();};
 
-const ANALYTICS_CONSENT_KEY='prototeer.analytics-consent.v1',ANALYTICS_PARTICIPANT_KEY='prototeer.analytics-participant.v1',ANALYTICS_UI_VERSION='dev-2026-11-23-add-board';
+const ANALYTICS_CONSENT_KEY='prototeer.analytics-consent.v1',ANALYTICS_PARTICIPANT_KEY='prototeer.analytics-participant.v1',ANALYTICS_UI_VERSION='dev-2026-11-23-board-management';
 const analyticsSessionId=('session_'+(crypto.randomUUID?.()??`${Date.now()}_${Math.random().toString(36).slice(2)}`)).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,100);
 const analyticsPanel=()=>({tools:'object-types',zones:'zones',creatures:'creatures',stats:'stats',rules:'interaction-rules',tags:'tags',behavior:'behavior-tree',directors:'directors',history:'history',board:'board'}[view]??'unknown');
 const allowedAnalyticsControls=()=>[...document.querySelectorAll('[id]')].map(element=>element.id).filter(id=>/^[A-Za-z][A-Za-z0-9_-]{0,79}$/.test(id));

@@ -16,6 +16,8 @@
     let subscription;
     let pendingBoard = null;
     let boardRender = 0;
+    let boardNameAction = null;
+    let boardToDelete = null;
 
     function stored(key) {
       try { return JSON.parse(global.localStorage.getItem(key)); }
@@ -85,7 +87,7 @@
       button.onclick = onClick;
       item.append(button);
       list.append(item);
-      return button;
+      return { item, button };
     }
 
     function status(id, message = '') {
@@ -110,6 +112,8 @@
             project_too_large: 'A board exceeds 12 MB. Use smaller artwork files before sharing.',
             board_limit_reached: 'This project already has 50 boards.',
             access_link_limit_reached: 'This project has reached its invite link limit.',
+            pause_before_editing: 'Pause the board before renaming it.',
+            checkpoint_required: 'Open the board and save it before renaming.',
           }[code] ?? (typeof code === 'string' && /[ .]/.test(code) && !code.includes('[CONVEX')
             ? code : 'Could not complete this action. Try again.');
           status(statusId === 'frontStatus' && !$('projectPage').hidden ? 'projectPageStatus' : statusId, message);
@@ -150,7 +154,9 @@
       }
       try {
         const saved = await api('projects');
-        const grouped = new Set(local.flatMap(entry => entry.boards.map(board => board.publicId)));
+        const grouped = new Set(local.flatMap(entry => [
+          ...entry.boards.map(board => board.publicId), ...(entry.deletedBoardIds ?? []),
+        ]));
         for (const world of saved) {
           if (grouped.has(world.id)) continue;
           const entry = {
@@ -190,12 +196,13 @@
       $('projectPageTitle').textContent = project.name;
       $('projectAddBoard').hidden = project.role === 'viewer';
       $('projectInvite').hidden = project.role !== 'owner';
+      $('projectBoardsEmpty').hidden = project.boards.length > 0;
       const list = $('projectBoardList');
       list.replaceChildren();
       const missing = [];
       const render = ++boardRender;
       for (const board of project.boards) {
-        const button = buttonRow(list, board.name, exclusive('projectPageStatus', () => showBoard(board.publicId)));
+        const { item, button } = buttonRow(list, board.name, exclusive('projectPageStatus', () => showBoard(board.publicId)));
         button.classList.add('board-card');
         const canvas = global.document.createElement('canvas');
         canvas.classList.add('board-card-preview');
@@ -206,6 +213,21 @@
         title.classList.add('board-card-title');
         title.textContent = board.name;
         button.replaceChildren(canvas, title);
+        if (project.role !== 'viewer') {
+          const actions = global.document.createElement('div');
+          actions.classList.add('board-card-actions');
+          const actionButton = (label, onClick) => {
+            const action = global.document.createElement('button');
+            action.type = 'button';
+            action.textContent = label;
+            action.setAttribute('aria-label', label + ' ' + board.name);
+            action.onclick = onClick;
+            actions.append(action);
+          };
+          actionButton('Rename', () => showBoardNameDialog(board));
+          if (project.role === 'owner') actionButton('Delete', () => showBoardDeleteDialog(board));
+          item.append(actions);
+        }
         global.PrototeerBoardPreview?.update(canvas, board.preview);
         if (!project.shared && previewOf && typeof board.preview !== 'string') missing.push({ board, canvas });
       }
@@ -317,20 +339,47 @@
       await openProject(entry);
     }
 
-    async function addBoard() {
-      if (!project || project.role === 'viewer') return;
-      const entry = project.shared ? project : stored(localPrefix + project.publicId) ?? project;
-      if (entry.boards.length >= 50) throw new Error('board_limit_reached');
+    function availableBoardName(entry) {
       const names = new Set(entry.boards.map(board => board.name));
       let number = 1;
       while (names.has('Board ' + number)) number++;
-      pendingBoard ??= createBoard('Board ' + number);
+      return 'Board ' + number;
+    }
+
+    function showBoardNameDialog(board = null, openAfter = false) {
+      if (!project || project.role === 'viewer') return;
+      boardNameAction = { board, openAfter };
+      const input = $('boardNameInput');
+      input.value = board?.name ?? pendingBoard?.name ?? availableBoardName(project);
+      $('boardNameTitle').textContent = board ? 'Rename Board' : 'Add Board';
+      $('boardNameSubmit').textContent = board ? 'Rename board' : 'Create board';
+      status('boardNameStatus');
+      $('boardNameDialog').showModal();
+      input.focus();
+      input.select?.();
+    }
+
+    function showBoardDeleteDialog(board) {
+      if (project?.role !== 'owner') return;
+      boardToDelete = board;
+      $('boardDeleteCopy').textContent = 'Remove “' + board.name + '” from this project?';
+      status('boardDeleteStatus');
+      $('boardDeleteDialog').showModal();
+    }
+
+    async function addBoard(name) {
+      if (!project || project.role === 'viewer') return;
+      const entry = project.shared ? project : stored(localPrefix + project.publicId) ?? project;
+      if (entry.boards.length >= 50) throw new Error('board_limit_reached');
+      pendingBoard ??= createBoard(name);
       if (entry.shared) {
-        await online.addBoard(accessOf(entry), pendingBoard.id, pendingBoard);
+        const added = await online.addBoard(accessOf(entry), pendingBoard.id, pendingBoard);
+        if (added.name !== name) await online.renameBoard(entry.token, pendingBoard.id, name);
         const current = await online.open(accessOf(entry));
         project = { ...entry, ...current };
         rememberShared(project);
       } else {
+        pendingBoard.name = name;
         await saveBoard(pendingBoard);
         const latest = stored(localPrefix + entry.publicId) ?? entry;
         const updated = { ...latest, updatedAt: Date.now(),
@@ -344,8 +393,91 @@
       return boardId;
     }
 
+    async function renameBoard(board, name) {
+      if (board.name === name) return;
+      const entry = project;
+      if (entry.shared) {
+        const info = await online.renameBoard(entry.token, board.publicId, name);
+        project = { ...project, boards: project.boards.map(item => item.publicId === board.publicId ? info : item) };
+        rememberShared(project);
+      } else {
+        const world = await api('projects/' + board.publicId);
+        world.name = name;
+        await saveBoard(world);
+        updateBoardSummary(world);
+      }
+      renderBoards();
+    }
+
+    async function deleteBoard(board) {
+      const entry = project;
+      if (entry.shared) {
+        await online.deleteBoard(entry.token, board.publicId);
+        project = { ...project, boards: project.boards.filter(item => item.publicId !== board.publicId) };
+        rememberShared(project);
+      } else {
+        const latest = stored(localPrefix + entry.publicId) ?? entry;
+        const removed = {
+          ...latest, boards: latest.boards.filter(item => item.publicId !== board.publicId),
+          deletedBoardIds: [...new Set([...(latest.deletedBoardIds ?? []), board.publicId])],
+        };
+        rememberLocal(removed);
+        try {
+          await api('projects/' + board.publicId, { method: 'DELETE' });
+        } catch (error) {
+          const current = stored(localPrefix + entry.publicId) ?? removed;
+          const boards = [...current.boards];
+          const previousIndex = latest.boards.findIndex(item => item.publicId === board.publicId);
+          if (previousIndex >= 0 && !boards.some(item => item.publicId === board.publicId)) {
+            boards.splice(previousIndex, 0, latest.boards[previousIndex]);
+          }
+          project = { ...current, boards, deletedBoardIds: current.deletedBoardIds?.filter(id => id !== board.publicId) };
+          rememberLocal(project);
+          renderBoards();
+          throw error;
+        }
+        project = removed;
+      }
+      renderBoards();
+    }
+
+    function boardFeedback(message) {
+      status('projectPageStatus', message);
+      toast(message);
+    }
+
+    async function saveBoardName() {
+      const name = $('boardNameInput').value.trim();
+      if (!name) throw new Error('Enter a board name.');
+      const { board, openAfter } = boardNameAction;
+      if (board) {
+        await renameBoard(board, name);
+        $('boardNameDialog').close();
+        boardFeedback('Renamed board to “' + name + '”.');
+        return;
+      }
+      if (openAfter && inEditor) await returnToProject();
+      const id = await addBoard(name);
+      $('boardNameDialog').close();
+      if (!id) return;
+      boardFeedback('Added board “' + name + '”.');
+      if (openAfter) {
+        try { await showBoard(id); }
+        catch { status('projectPageStatus', 'Added “' + name + '”. Select it to try opening it again.'); }
+      }
+    }
+
+    async function confirmBoardDelete() {
+      if (project?.role !== 'owner' || !boardToDelete) return;
+      const board = boardToDelete;
+      await deleteBoard(board);
+      $('boardDeleteDialog').close();
+      boardFeedback('Deleted board “' + board.name + '”.');
+    }
+
     async function publishProject() {
       const entry = stored(localPrefix + project.publicId) ?? project;
+      if (!entry.boards.length) throw new Error('Add a board before inviting someone.');
       const endpoint = online.url();
       const upload = entry.upload?.backend === endpoint ? entry.upload : {
         publicId: online.token(24), token: online.token(), backend: endpoint, boardIds: {},
@@ -355,6 +487,18 @@
       const access = accessOf(upload);
       const boardIds = [];
       upload.snapshots ??= {};
+      let stagedProject;
+      if (Object.keys(upload.snapshots).length) {
+        try { stagedProject = await online.open(access); }
+        catch (error) { if ((error?.data?.code ?? error?.message) !== 'access_denied') throw error; }
+      }
+      if (stagedProject) {
+        const selected = new Set(entry.boards.map(board => upload.boardIds[board.publicId]));
+        const staged = new Set(Object.values(upload.boardIds));
+        for (const board of stagedProject.boards) {
+          if (staged.has(board.publicId) && !selected.has(board.publicId)) await online.deleteBoard(access.token, board.publicId);
+        }
+      }
       for (const board of entry.boards) {
         const world = await api('projects/' + board.publicId);
         const onlineId = upload.boardIds[board.publicId];
@@ -363,7 +507,7 @@
           upload.snapshots[onlineId] = fingerprint;
           rememberLocal({ ...entry, upload });
         }
-        if (!boardIds.length) await online.create(upload.publicId, upload.token, entry.name, onlineId, world);
+        if (!stagedProject && !boardIds.length) await online.create(upload.publicId, upload.token, entry.name, onlineId, world);
         else await online.addBoard(access, onlineId, world);
         if (upload.snapshots[onlineId] !== fingerprint) {
           await online.updateDraftBoard(access, onlineId, world);
@@ -465,15 +609,25 @@
       show('editorShell');
     });
     $('frontDemo').onclick = $('lobbyDemo').onclick = launchDemo;
-    $('projectAddBoard').onclick = exclusive('projectPageStatus', addBoard);
+    $('projectAddBoard').onclick = () => showBoardNameDialog();
     $('projectBackToLobby').onclick = exclusive('projectPageStatus', showFront);
     $('editorBackToProject').onclick = exclusive('projectPageStatus', returnToProject);
-    $('editorAddBoard').onclick = exclusive('projectPageStatus', async () => {
-      if (!project || project.role === 'viewer') return;
-      await returnToProject();
-      const boardId = await addBoard();
-      if (boardId) await showBoard(boardId);
-    });
+    $('editorAddBoard').onclick = () => showBoardNameDialog(null, true);
+    for (const [prefix, action] of [['boardName', saveBoardName], ['boardDelete', confirmBoardDelete]]) {
+      const dialog = $(prefix + 'Dialog');
+      $(prefix + 'Cancel').onclick = () => { if (!busy) dialog.close(); };
+      dialog.oncancel = event => { if (busy) event.preventDefault(); };
+      $(prefix + 'Form').onsubmit = event => {
+        event.preventDefault();
+        if (!dialog.open) return;
+        return exclusive(prefix + 'Status', async () => {
+          const submit = $(prefix + 'Submit');
+          submit.disabled = true;
+          try { await action(); }
+          finally { submit.disabled = false; }
+        })();
+      };
+    }
     $('projectInvite').onclick = inviteDialog;
     $('projectInviteClose').onclick = () => $('projectInviteDialog').close();
     $('projectInviteCopy').onclick = () => copy($('projectInviteLink').value);

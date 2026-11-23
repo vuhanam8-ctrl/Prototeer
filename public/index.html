@@ -58,6 +58,7 @@
       <button id="projectAddBoard" type="button" class="primary">Add Board</button>
     </div>
     <p id="projectPageStatus" class="project-hub-status" role="status"></p>
+    <p id="projectBoardsEmpty" class="project-hub-status" hidden>No boards yet.</p>
     <ul id="projectBoardList" class="project-hub-list" aria-labelledby="projectBoardHeading"></ul>
   </main>
 </section>
@@ -88,6 +89,30 @@
     <div class="project-hub-actions">
       <button id="projectNameCancel" type="button">Cancel</button>
       <button id="projectNameSubmit" type="submit" class="primary">Create project</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="boardNameDialog" class="project-hub-dialog" aria-labelledby="boardNameTitle" data-analytics-region="dialog">
+  <h2 id="boardNameTitle">Add Board</h2>
+  <form id="boardNameForm">
+    <label class="field" for="boardNameInput">Board name
+      <input id="boardNameInput" type="text" maxlength="100" required autofocus>
+    </label>
+    <p id="boardNameStatus" class="project-hub-status" role="status"></p>
+    <div class="project-hub-actions">
+      <button id="boardNameCancel" type="button">Cancel</button>
+      <button id="boardNameSubmit" type="submit" class="primary">Create board</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="boardDeleteDialog" class="project-hub-dialog" aria-labelledby="boardDeleteTitle" data-analytics-region="dialog">
+  <h2 id="boardDeleteTitle">Delete board?</h2>
+  <p id="boardDeleteCopy"></p>
+  <form id="boardDeleteForm">
+    <p id="boardDeleteStatus" class="project-hub-status" role="status"></p>
+    <div class="project-hub-actions">
+      <button id="boardDeleteCancel" type="button" autofocus>Cancel</button>
+      <button id="boardDeleteSubmit" type="submit" class="danger">Delete board</button>
     </div>
   </form>
 </dialog>

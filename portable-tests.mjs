@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import vm from 'node:vm';import {createProjectStore} from './browser-store.js';import {createDemoWorld,makeTool,place,validWorld,MAX_BYTES} from './public/engine.js';import {bootEditor,createTestLocalStorage} from './editor-smoke.mjs';import {buildPortable} from './build-portable.mjs';
-function fakeIndexedDB(){const values=new Map();let failed=false;return {failWrites(){failed=true;},open(){const req={};queueMicrotask(()=>{const db={objectStoreNames:{contains:()=>true},close(){},transaction(_name,mode){const tx={error:null,abort(){queueMicrotask(()=>tx.onabort?.());},objectStore(){function request(action){const r={};queueMicrotask(()=>{if(failed&&mode==='readwrite'){tx.error=new Error('Quota exceeded');tx.onabort?.();return;}r.result=structuredClone(action());r.onsuccess?.();queueMicrotask(()=>tx.oncomplete?.());});return r;}return {get:key=>request(()=>values.get(key)),getAll:()=>request(()=>[...values.values()]),put:value=>request(()=>{values.set(value.id,structuredClone(value));return value.id;})};}};return tx;}};req.result=db;req.onsuccess?.();});return req;}};}
+function fakeIndexedDB(){const values=new Map();let failed=false;return {failWrites(){failed=true;},open(){const req={};queueMicrotask(()=>{const db={objectStoreNames:{contains:()=>true},close(){},transaction(_name,mode){const tx={error:null,abort(){queueMicrotask(()=>tx.onabort?.());},objectStore(){function request(action){const r={};queueMicrotask(()=>{if(failed&&mode==='readwrite'){tx.error=new Error('Quota exceeded');tx.onabort?.();return;}r.result=structuredClone(action());r.onsuccess?.();queueMicrotask(()=>tx.oncomplete?.());});return r;}return {get:key=>request(()=>values.get(key)),getAll:()=>request(()=>[...values.values()]),delete:key=>request(()=>values.delete(key)),put:value=>request(()=>{values.set(value.id,structuredClone(value));return value.id;})};}};return tx;}};req.result=db;req.onsuccess?.();});return req;}};}
 test('portable artifact has no module, network, absolute asset or font dependencies',async()=>{const {document,adminDocument,js}=await buildPortable();assert.ok(!/^\s*(?:import|export)\s/m.test(js));assert.ok(!/<(?:script|link)[^>]+(?:src|href)=/i.test(document));assert.ok(!/<(?:script|link)[^>]+(?:src|href)=/i.test(adminDocument));assert.ok(!document.includes('fonts.googleapis.com'));assert.ok(document.includes('href="./index.html"'));assert.ok(!document.includes('analytics-admin'));assert.match(adminDocument,/noindex,nofollow,noarchive/);new vm.Script(js);});
 test('browser project store saves independent full projects with art, memory, and editable definitions',async()=>{const idb=fakeIndexedDB(),store=createProjectStore(idb,validWorld,MAX_BYTES),world=createDemoWorld();world.tools[0].image='data:image/png;base64,iVBORw0KGgo=';await store.request('projects/'+world.id,{method:'PUT',body:JSON.stringify(world)});const secondClient=createProjectStore(idb,validWorld,MAX_BYTES),saved=await secondClient.request('projects/'+world.id);assert.deepEqual(saved.tools,world.tools);assert.deepEqual(saved.zones,world.zones);assert.deepEqual(saved.directors,world.directors);assert.ok(validWorld(saved));saved.name='mutated copy';assert.notEqual((await store.request('projects/'+world.id)).name,'mutated copy');assert.equal((await store.request('projects'))[0].id,world.id);await assert.rejects(store.request('projects/other',{method:'PUT',body:JSON.stringify(world)}),/Invalid project/);});
 test('unavailable or full browser storage reports failure instead of a false saved state',async()=>{await assert.rejects(createProjectStore(undefined,validWorld,MAX_BYTES).request('projects'),/unavailable/);const idb=fakeIndexedDB(),store=createProjectStore(idb,validWorld,MAX_BYTES),world=createDemoWorld();idb.failWrites();await assert.rejects(store.request('projects/'+world.id,{method:'PUT',body:JSON.stringify(world)}),/Quota/);assert.deepEqual(await store.request('projects'),[]);});
@@ -47,15 +47,28 @@ test('a named project opens Board 1 and independently saves its boards in the of
   place(editor.world(), tool.id, 6, 7);
   get('step').click();
   assert.equal(get('editorAddBoard').hidden, false);
-  await get('editorAddBoard').onclick();
+  get('editorAddBoard').click();
+  assert.equal(get('boardNameDialog').open, true);
+  assert.equal(get('boardNameInput').value, 'Board 2');
+  get('boardNameInput').value = 'Wall layout';
+  await get('boardNameForm').onsubmit({ preventDefault() {} });
+  assert.equal(get('boardNameDialog').open, false);
+  assert.match(get('toast').textContent, /Added board.*Wall layout/);
   const manifestKey = Object.keys(localStorage).find(key => key.startsWith('prototeer.project-home.local.'));
   assert.match(JSON.parse(localStorage.getItem(manifestKey)).boards[0].preview, /^0+[1-9a-f]$/);
-  assert.deepEqual(boards().map(button => button.textContent), ['Board 1', 'Board 2']);
+  assert.deepEqual(boards().map(button => button.textContent), ['Board 1', 'Wall layout']);
   assert.equal(get('editorShell').hidden, false);
-  assert.equal(editor.world().name, 'Board 2');
+  assert.equal(editor.world().name, 'Wall layout');
+  const secondId = editor.world().id;
   assert.notEqual(editor.world().id, firstId);
   assert.equal(editor.world().tick, 0);
   await get('editorBackToProject').onclick();
+  const boardActions = (getElement, index) => getElement('projectBoardList').children[index].children[1].children;
+  boardActions(get, 1)[0].click();
+  assert.equal(get('boardNameInput').value, 'Wall layout');
+  get('boardNameInput').value = 'Path tests';
+  await get('boardNameForm').onsubmit({ preventDefault() {} });
+  assert.match(get('projectPageStatus').textContent, /Renamed board.*Path tests/);
   await boards()[0].onclick();
   assert.equal(editor.world().id, firstId);
   assert.equal(editor.world().tick, 1);
@@ -69,7 +82,23 @@ test('a named project opens Board 1 and independently saves its boards in the of
   const projects = listButtons(reopened.get, 'lobbyProjectList');
   assert.deepEqual(projects.map(button => button.textContent), ['Enemy patrol']);
   await projects[0].onclick();
-  assert.deepEqual(listButtons(reopened.get, 'projectBoardList').map(button => button.textContent), ['Board 1', 'Board 2']);
+  assert.deepEqual(listButtons(reopened.get, 'projectBoardList').map(button => button.textContent), ['Board 1', 'Path tests']);
+  await listButtons(reopened.get, 'projectBoardList')[1].onclick();
+  assert.equal(reopened.editor.world().name, 'Path tests');
+  await reopened.get('editorBackToProject').onclick();
+  boardActions(reopened.get, 1)[1].click();
+  assert.equal(reopened.get('boardDeleteDialog').open, true);
+  reopened.get('boardDeleteCancel').click();
+  assert.equal(listButtons(reopened.get, 'projectBoardList').length, 2);
+  boardActions(reopened.get, 1)[1].click();
+  await reopened.get('boardDeleteForm').onsubmit({ preventDefault() {} });
+  assert.match(reopened.get('projectPageStatus').textContent, /Deleted board.*Path tests/);
+  assert.deepEqual(listButtons(reopened.get, 'projectBoardList').map(button => button.textContent), ['Board 1']);
+  await assert.rejects(createProjectStore(indexedDB, validWorld, MAX_BYTES).request('projects/'+secondId), /not found/);
+  boardActions(reopened.get, 0)[1].click();
+  await reopened.get('boardDeleteForm').onsubmit({ preventDefault() {} });
+  assert.equal(reopened.get('projectBoardsEmpty').hidden, false);
+  assert.equal(reopened.get('projectPageTitle').textContent, 'Enemy patrol');
 });
 
 test('a fresh viewer opens every board from a project invite without editor controls', async () => {
@@ -106,6 +135,7 @@ test('a fresh viewer opens every board from a project invite without editor cont
           async addBoard(access, id, data) {
             assert.equal(accessRole(access), 'owner');
             boards.set(id, structuredClone(data));
+            return { publicId: id, name: data.name };
           },
           async invite(access, token, grant, expectedBoardIds) {
             assert.equal(accessRole(access), 'owner');
@@ -131,7 +161,8 @@ test('a fresh viewer opens every board from a project invite without editor cont
   get('projectNameInput').value = 'Patrol';
   get('projectNameForm').onsubmit({ preventDefault() {} });
   await settle();
-  await get('projectAddBoard').onclick();
+  get('projectAddBoard').click();
+  await get('boardNameForm').onsubmit({ preventDefault() {} });
   get('projectInvite').click();
   get('projectInviteForm').onsubmit({ preventDefault() {} });
   await settle();

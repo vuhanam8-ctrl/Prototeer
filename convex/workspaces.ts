@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
+import { recordOperation } from "./collaboration";
 import {
   digestToken,
   findWorkspaceCapability,
@@ -43,7 +44,7 @@ const boardInfo = ({ publicId, name, updatedAt, preview }: Pick<Doc<"projects">,
 
 function getBoards(ctx: MutationCtx | QueryCtx, workspaceId: Id<"workspaces">) {
   return ctx.db.query("projects")
-    .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+    .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId).eq("deletedAt", undefined))
     .take(MAX_BOARDS);
 }
 
@@ -70,7 +71,7 @@ export const create = mutation({
       const { capability } = await requireWorkspaceAccess(ctx, args.publicId, args.ownerToken);
       requireOwner(capability.role);
       const board = await findBoard(ctx, args.board.publicId);
-      if (!board || board.workspaceId !== existing._id) {
+      if (!board || board.workspaceId !== existing._id || board.deletedAt !== undefined) {
         throw new ConvexError({ code: "project_id_unavailable" });
       }
       return { publicId: existing.publicId, name: existing.name, role: "owner" as const, board: boardInfo(board) };
@@ -112,7 +113,9 @@ export const addBoard = mutation({
     safeSessionId(args.sessionId);
     const existing = await findBoard(ctx, args.board.publicId);
     if (existing) {
-      if (existing.workspaceId !== workspace._id) throw new ConvexError({ code: "project_id_unavailable" });
+      if (existing.workspaceId !== workspace._id || existing.deletedAt !== undefined) {
+        throw new ConvexError({ code: "project_id_unavailable" });
+      }
       return boardInfo(existing);
     }
     if ((await getBoards(ctx, workspace._id)).length >= MAX_BOARDS) {
@@ -135,7 +138,9 @@ export const updateDraftBoard = mutation({
     safeSessionId(args.sessionId);
     requireBoardFormat(args.board.formatVersion);
     const board = await findBoard(ctx, args.board.publicId);
-    if (!board || board.workspaceId !== workspace._id) throw new ConvexError({ code: "project_not_found" });
+    if (!board || board.workspaceId !== workspace._id || board.deletedAt !== undefined) {
+      throw new ConvexError({ code: "project_not_found" });
+    }
     const previousSnapshotId = board.currentSnapshotId;
     if (board.currentRevision !== 0 || board.simulationGeneration !== 0 || !previousSnapshotId) {
       throw new ConvexError({ code: "draft_board_changed" });
@@ -170,6 +175,50 @@ export const updatePreview = mutation({
     if (project.preview === args.preview) return { status: "unchanged" as const };
     await ctx.db.patch(project._id, { preview: safeBoardPreview(args.preview) });
     return { status: "saved" as const };
+  },
+});
+
+export const renameBoard = mutation({
+  args: { ...credentials, name: v.string(), sessionId: v.string() },
+  handler: async (ctx, args) => {
+    const { project, capability } = await requireAccess(ctx, args.publicId, args.token);
+    if (!project.workspaceId) throw new ConvexError({ code: "project_not_found" });
+    requireEditor(capability.role);
+    safeSessionId(args.sessionId);
+    const name = safeName(args.name);
+    if (project.name === name) return boardInfo(project);
+
+    await recordOperation(ctx, project, {
+      sessionId: args.sessionId,
+      // The public operation ID validator reserves colon-containing IDs for server use.
+      opId: `workspace-rename:${project.currentRevision + 1}`,
+      kind: "renameProject",
+      resourceKey: "root:name",
+      payload: { name },
+    });
+    const updated = await ctx.db.get(project._id);
+    if (!updated) throw new ConvexError({ code: "project_not_found" });
+    return boardInfo(updated);
+  },
+});
+
+export const deleteBoard = mutation({
+  args: credentials,
+  handler: async (ctx, args) => {
+    const { project, capability } = await requireAccess(ctx, args.publicId, args.token, true);
+    if (!project.workspaceId) throw new ConvexError({ code: "project_not_found" });
+    requireOwner(capability.role);
+    if (project.deletedAt === undefined) {
+      const now = Date.now();
+      await ctx.db.patch(project._id, {
+        deletedAt: now,
+        updatedAt: now,
+        simulationStatus: "paused",
+        simulationController: undefined,
+        simulationLeaseUntil: undefined,
+      });
+    }
+    return { deleted: true };
   },
 });
 

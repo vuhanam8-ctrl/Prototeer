@@ -24,6 +24,7 @@ export async function requireAccess(
   ctx: QueryCtx | MutationCtx,
   publicId: string,
   token: string,
+  includeDeleted = false,
 ): Promise<Access> {
   if (!/^[A-Za-z0-9_-]{16,80}$/.test(publicId)) {
     throw new ConvexError({ code: "project_not_found" });
@@ -32,7 +33,9 @@ export async function requireAccess(
     .query("projects")
     .withIndex("by_public_id", (q) => q.eq("publicId", publicId))
     .unique();
-  if (!project) throw new ConvexError({ code: "project_not_found" });
+  if (!project || (!includeDeleted && project.deletedAt !== undefined)) {
+    throw new ConvexError({ code: "project_not_found" });
+  }
   const tokenDigest = await digestToken(token);
   if (project.workspaceId) {
     const capability = await findWorkspaceCapability(ctx, tokenDigest);
