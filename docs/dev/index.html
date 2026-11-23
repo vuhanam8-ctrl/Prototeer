@@ -281,6 +281,10 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
   margin-top: 26px;
 }
 
+#projectBoardList > li:only-child {
+  max-inline-size: 560px;
+}
+
 #projectBoardList .board-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -434,7 +438,7 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
 <section id="projectPage" class="project-hub" aria-labelledby="projectPageTitle" data-analytics-region="projects" hidden>
   <div class="project-hub-top">
     <span class="brand">prototeer</span>
-    <button id="projectBackToLobby" type="button">Back to lobby</button>
+    <button id="projectBackToLobby" type="button">Back to Home</button>
   </div>
   <main class="project-hub-main">
     <div class="project-hub-heading">
@@ -7285,9 +7289,15 @@ globalThis.convex=convex;
       $('projectInviteLink').value = '';
       $('projectInviteBackendField').hidden = Boolean(collaboration?.available()) || !online?.desktop();
       $('projectInviteRecovery').hidden = !project.shared;
-      status('projectInviteStatus', online?.desktop() ? '' : 'Open this project on desktop to invite someone.');
+      showInviteAvailability();
       $('projectInviteDialog').showModal();
       void refreshGrants(project).catch(() => {});
+    }
+
+    function showInviteAvailability() {
+      status('projectInviteStatus', !online?.desktop()
+        ? 'Open this project on desktop to invite someone.'
+        : collaboration.available() ? '' : 'Connect a deployed Convex backend to create an invite link.');
     }
 
     async function createInvite() {
@@ -7347,7 +7357,7 @@ globalThis.convex=convex;
     $('projectInviteRole').onchange = () => {
       $('projectInviteLink').value = '';
       $('projectInviteResult').hidden = true;
-      status('projectInviteStatus');
+      showInviteAvailability();
     };
     $('projectInviteRecovery').onclick = () => {
       if (!project?.shared || project.role !== 'owner') return;
@@ -8101,7 +8111,7 @@ function treeVisible(){return view==='behavior'||isSplitWorkspace();}
 function updateWorkspace(){const active=isSplitWorkspace();$('editorLayout').classList.toggle('split-active',active);$('editorLayout').classList.toggle('inspector-open',active&&splitInspector);$('simulationWorkspace').classList.toggle('split-mode',active);$('simulationWorkspace').classList.toggle('hidden',!['board','behavior'].includes(view));for(const k of ['board','tools','stats','rules','tags','behavior','history','creatures','zones','directors'])$(k+'View').classList.toggle('hidden',!(k===view||active&&['board','behavior'].includes(k)));$('toggleSplit').ariaPressed=String(splitEnabled);$('toggleInspector').classList.toggle('hidden',!active);$('toggleInspector').ariaPressed=String(splitInspector);$('toggleInspector').textContent=splitInspector?'Hide inspector':'Show inspector';}
 $('toggleSplit').onclick=()=>{splitEnabled=!splitEnabled;switchView(['board','behavior'].includes(view)?view:'board');requestDraw();};$('toggleInspector').onclick=()=>{splitInspector=!splitInspector;updateWorkspace();requestDraw();};
 
-const ANALYTICS_CONSENT_KEY='prototeer.analytics-consent.v1',ANALYTICS_PARTICIPANT_KEY='prototeer.analytics-participant.v1',ANALYTICS_UI_VERSION='dev-2026-11-23-centered';
+const ANALYTICS_CONSENT_KEY='prototeer.analytics-consent.v1',ANALYTICS_PARTICIPANT_KEY='prototeer.analytics-participant.v1',ANALYTICS_UI_VERSION='dev-2026-11-23-board-cards';
 const analyticsSessionId=('session_'+(crypto.randomUUID?.()??`${Date.now()}_${Math.random().toString(36).slice(2)}`)).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,100);
 const analyticsPanel=()=>({tools:'object-types',zones:'zones',creatures:'creatures',stats:'stats',rules:'interaction-rules',tags:'tags',behavior:'behavior-tree',directors:'directors',history:'history',board:'board'}[view]??'unknown');
 const allowedAnalyticsControls=()=>[...document.querySelectorAll('[id]')].map(element=>element.id).filter(id=>/^[A-Za-z][A-Za-z0-9_-]{0,79}$/.test(id));

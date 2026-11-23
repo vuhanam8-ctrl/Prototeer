@@ -280,6 +280,10 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
   margin-top: 26px;
 }
 
+#projectBoardList > li:only-child {
+  max-inline-size: 560px;
+}
+
 #projectBoardList .board-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

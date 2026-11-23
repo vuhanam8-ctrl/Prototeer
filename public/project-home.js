@@ -401,9 +401,15 @@
       $('projectInviteLink').value = '';
       $('projectInviteBackendField').hidden = Boolean(collaboration?.available()) || !online?.desktop();
       $('projectInviteRecovery').hidden = !project.shared;
-      status('projectInviteStatus', online?.desktop() ? '' : 'Open this project on desktop to invite someone.');
+      showInviteAvailability();
       $('projectInviteDialog').showModal();
       void refreshGrants(project).catch(() => {});
+    }
+
+    function showInviteAvailability() {
+      status('projectInviteStatus', !online?.desktop()
+        ? 'Open this project on desktop to invite someone.'
+        : collaboration.available() ? '' : 'Connect a deployed Convex backend to create an invite link.');
     }
 
     async function createInvite() {
@@ -463,7 +469,7 @@
     $('projectInviteRole').onchange = () => {
       $('projectInviteLink').value = '';
       $('projectInviteResult').hidden = true;
-      status('projectInviteStatus');
+      showInviteAvailability();
     };
     $('projectInviteRecovery').onclick = () => {
       if (!project?.shared || project.role !== 'owner') return;
