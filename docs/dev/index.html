@@ -77,41 +77,28 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
   background: #17191d;
 }
 
-.front-lobby-top {
-  justify-content: space-between;
-}
-
 .front-lobby-main {
   display: grid;
   grid-template-columns: minmax(0, .88fr) minmax(0, 1.12fr);
   align-items: center;
   gap: clamp(28px, 6vw, 100px);
   max-width: 1480px;
-  min-height: min(680px, calc(100svh - 68px));
+  min-height: min(760px, 100svh);
   padding: clamp(52px, 9vw, 136px) clamp(22px, 6vw, 96px);
   margin-inline: auto;
   background: transparent;
 }
 
 .front-lobby-copy h1 {
-  max-width: 11ch;
   margin: 0;
-  color: #f4f5f7;
-  font-size: clamp(44px, 6.2vw, 92px);
-  font-weight: 700;
-  letter-spacing: -.07em;
+  font-size: clamp(52px, 6.6vw, 100px);
+  letter-spacing: -.054em;
   line-height: .98;
-}
-
-.front-lobby-copy > p:not(.project-hub-status) {
-  margin: 26px 0 30px;
-  color: #b8bec7;
-  font-size: clamp(17px, 1.7vw, 22px);
-  line-height: 1.5;
 }
 
 .front-lobby-copy .project-hub-actions {
   gap: 12px;
+  margin-top: clamp(24px, 3vw, 38px);
 }
 
 .front-lobby-copy button {
@@ -414,16 +401,12 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
 
 </style></head><body>
 <section id="frontLobby" class="project-hub front-lobby" aria-labelledby="frontTitle" data-analytics-region="projects">
-  <div class="project-hub-top front-lobby-top">
-    <span class="brand">prototeer</span>
-    <button id="frontProjects" type="button">Projects</button>
-  </div>
   <main class="front-lobby-main">
     <div class="front-lobby-copy">
-      <h1 id="frontTitle" tabindex="-1">Prototype game mechanics.</h1>
-      <p>Build and test rules on a 2D board.</p>
+      <h1 id="frontTitle" class="brand" tabindex="-1">prototeer</h1>
       <div class="project-hub-actions">
         <button id="frontNewProject" type="button" class="primary">New Project</button>
+        <button id="frontProjects" type="button">Projects</button>
         <button id="frontDemo" type="button">Pursuit demo</button>
       </div>
       <p id="frontStatus" class="project-hub-status" role="status"></p>
@@ -8131,7 +8114,7 @@ function treeVisible(){return view==='behavior'||isSplitWorkspace();}
 function updateWorkspace(){const active=isSplitWorkspace();$('editorLayout').classList.toggle('split-active',active);$('editorLayout').classList.toggle('inspector-open',active&&splitInspector);$('simulationWorkspace').classList.toggle('split-mode',active);$('simulationWorkspace').classList.toggle('hidden',!['board','behavior'].includes(view));for(const k of ['board','tools','stats','rules','tags','behavior','history','creatures','zones','directors'])$(k+'View').classList.toggle('hidden',!(k===view||active&&['board','behavior'].includes(k)));$('toggleSplit').ariaPressed=String(splitEnabled);$('toggleInspector').classList.toggle('hidden',!active);$('toggleInspector').ariaPressed=String(splitInspector);$('toggleInspector').textContent=splitInspector?'Hide inspector':'Show inspector';}
 $('toggleSplit').onclick=()=>{splitEnabled=!splitEnabled;switchView(['board','behavior'].includes(view)?view:'board');requestDraw();};$('toggleInspector').onclick=()=>{splitInspector=!splitInspector;updateWorkspace();requestDraw();};
 
-const ANALYTICS_CONSENT_KEY='prototeer.analytics-consent.v1',ANALYTICS_PARTICIPANT_KEY='prototeer.analytics-participant.v1',ANALYTICS_UI_VERSION='dev-2026-11-23-lobby';
+const ANALYTICS_CONSENT_KEY='prototeer.analytics-consent.v1',ANALYTICS_PARTICIPANT_KEY='prototeer.analytics-participant.v1',ANALYTICS_UI_VERSION='dev-2026-11-23-wordmark';
 const analyticsSessionId=('session_'+(crypto.randomUUID?.()??`${Date.now()}_${Math.random().toString(36).slice(2)}`)).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,100);
 const analyticsPanel=()=>({tools:'object-types',zones:'zones',creatures:'creatures',stats:'stats',rules:'interaction-rules',tags:'tags',behavior:'behavior-tree',directors:'directors',history:'history',board:'board'}[view]??'unknown');
 const allowedAnalyticsControls=()=>[...document.querySelectorAll('[id]')].map(element=>element.id).filter(id=>/^[A-Za-z][A-Za-z0-9_-]{0,79}$/.test(id));
