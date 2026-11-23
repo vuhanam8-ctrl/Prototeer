@@ -63,13 +63,206 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
 .unity-export-issues li+li{margin-top:5px}
 .unity-export-actions{flex-wrap:wrap}
 
+.project-hub[hidden], #editorShell[hidden], #editorBackToProject[hidden],
+.project-hub-dialog [hidden] {
+  display: none;
+}
+
+.project-hub {
+  min-height: 100vh;
+  background: #191d23;
+}
+
+.project-hub-top {
+  min-height: 68px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 12px clamp(16px, 4vw, 48px);
+  background: #242930;
+  border-bottom: 1px solid var(--line);
+}
+
+.project-hub-main {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: clamp(28px, 6vw, 76px) clamp(16px, 4vw, 48px) 72px;
+}
+
+.project-hub-heading, .project-hub-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.project-hub-heading {
+  justify-content: space-between;
+  column-gap: 24px;
+}
+
+.project-hub-heading h1, .project-hub-heading h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.project-hub-heading h1 {
+  font-size: clamp(28px, 5vw, 44px);
+  line-height: 1.15;
+  letter-spacing: -.025em;
+}
+
+.project-board-heading {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.project-board-heading h2 {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.project-hub-status {
+  margin: 16px 0 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.project-hub-status:empty {
+  margin: 0;
+}
+
+.project-hub-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: 12px;
+  list-style: none;
+  margin: 22px 0 0;
+  padding: 0;
+}
+
+.project-hub-list > li {
+  min-width: 0;
+}
+
+.project-hub-list > li > button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  min-height: 76px;
+  width: 100%;
+  height: 100%;
+  padding: 14px 16px;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+.project-hub-list small {
+  color: var(--muted);
+}
+
+.project-hub-dialog {
+  width: min(490px, calc(100vw - 24px));
+}
+
+.project-hub-dialog h2 {
+  margin: 0 0 18px;
+  font-size: 23px;
+  line-height: 1.2;
+}
+
+.project-hub-dialog .project-hub-actions {
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.project-invite-result {
+  margin-top: 16px;
+}
+
+.project-invite-backend {
+  margin-bottom: 16px;
+}
+
+.project-invite-grants {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.project-invite-grants > li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 1240px) {
+  #editorShell header:has(#editorBackToProject:not([hidden])) {
+    height: auto;
+    min-height: 68px;
+    flex-wrap: wrap;
+    padding-block: 10px;
+  }
+}
+
+@media (max-width: 520px) {
+  .project-hub-heading {
+    align-items: flex-start;
+  }
+
+  .project-hub-heading > .project-hub-actions {
+    flex-basis: 100%;
+  }
+}
+
 </style></head><body>
-<header data-analytics-region="header"><a class="brand" href="./index.html">prototeer<span> / </span><small>SANDBOX</small></a><input id="projectName" value="Untitled sandbox" aria-label="Project name"><span id="saveState">Unsaved</span><span id="syncState" class="sync-state" data-state="local">Local</span><div id="presence" class="presence" aria-label="People in this project"></div><div class="header-actions"><a class="download-zip" id="downloadPortable" href="./Prototeer.zip" download>Download ZIP</a><button id="projects">Projects</button><button id="share">Share</button><button id="export">Export</button><button id="exportUnity">Export to Unity</button><button id="help" aria-label="Help">?</button><button id="save" class="primary">Save project</button></div></header>
+<section id="projectLobby" class="project-hub" aria-labelledby="lobbyTitle" data-analytics-region="projects">
+  <div class="project-hub-top"><span class="brand">prototeer</span></div>
+  <main class="project-hub-main">
+    <div class="project-hub-heading">
+      <h1 id="lobbyTitle" tabindex="-1">Projects</h1>
+      <div class="project-hub-actions">
+        <button id="lobbyImport" type="button">Import JSON</button>
+        <button id="lobbyDemo" type="button">Pursuit demo</button>
+        <button id="lobbyNewProject" type="button" class="primary">New Project</button>
+      </div>
+    </div>
+    <p id="lobbyStatus" class="project-hub-status" role="status"></p>
+    <ul id="lobbyProjectList" class="project-hub-list" aria-label="Saved projects"></ul>
+  </main>
+</section>
+<section id="projectPage" class="project-hub" aria-labelledby="projectPageTitle" data-analytics-region="projects" hidden>
+  <div class="project-hub-top">
+    <span class="brand">prototeer</span>
+    <button id="projectBackToLobby" type="button">Back to projects</button>
+  </div>
+  <main class="project-hub-main">
+    <div class="project-hub-heading">
+      <h1 id="projectPageTitle" tabindex="-1"></h1>
+      <button id="projectInvite" type="button">Invite</button>
+    </div>
+    <div class="project-hub-heading project-board-heading">
+      <h2 id="projectBoardHeading">Boards</h2>
+      <button id="projectAddBoard" type="button" class="primary">Add Board</button>
+    </div>
+    <p id="projectPageStatus" class="project-hub-status" role="status"></p>
+    <ul id="projectBoardList" class="project-hub-list" aria-labelledby="projectBoardHeading"></ul>
+  </main>
+</section>
+<div id="editorShell" hidden>
+<header data-analytics-region="header"><a class="brand" href="./index.html">prototeer<span> / </span><small>SANDBOX</small></a><button id="editorBackToProject" type="button" hidden>Back to project</button><input id="projectName" value="Untitled sandbox" aria-label="Project name"><span id="saveState">Unsaved</span><span id="syncState" class="sync-state" data-state="local">Local</span><div id="presence" class="presence" aria-label="People in this project"></div><div class="header-actions"><a class="download-zip" id="downloadPortable" href="./Prototeer.zip" download>Download ZIP</a><button id="projects">Projects</button><button id="share">Share</button><button id="export">Export</button><button id="exportUnity">Export to Unity</button><button id="help" aria-label="Help">?</button><button id="save" class="primary">Save project</button></div></header>
 <div class="layout" id="editorLayout"><aside class="left" data-analytics-region="workspace"><div class="workspace-label">WORKSPACE <span>DEV</span></div><nav aria-label="Workspace"><button class="nav active" data-view="board">Board <kbd>1</kbd></button>
 <details class="workspace-group" id="workspaceTool" open><summary>Objects</summary><div class="workspace-group-content"><button class="nav" data-view="tools">Object types <span id="toolCount">0</span></button><button class="nav" data-view="zones">Zones <span id="zoneCount">0</span></button><button class="nav" data-view="creatures">Creatures <span id="creatureCount">0</span></button><details class="brush-palette"><summary>Object palette</summary><div class="section-title">OBJECT TYPES<button id="newTool" title="Create object type">＋</button></div><div id="toolList"></div><button id="createTool" class="dashed">＋ Create object type</button><button id="createCreature" class="dashed">＋ Create creature</button><div class="zone-shelf"><div class="section-title">ZONES<button id="quickNewZone" title="Create zone">＋</button></div><div id="zoneBrushes"></div></div></details></div></details>
 <details class="workspace-group" id="workspaceProperties"><summary>Properties</summary><div class="workspace-group-content"><button class="nav" data-view="stats">Stats <span id="statCount">0</span></button><button class="nav" data-view="rules">Interaction rules <span id="ruleCount">0</span></button><button class="nav" data-view="tags">Tags <span id="tagCount">0</span></button><button id="quickStat" class="dashed">＋ Create stat</button></div></details>
 <details class="workspace-group" id="workspaceBehavior"><summary>Behavior tree</summary><div class="workspace-group-content"><button class="nav" data-view="behavior">Tree editor</button><button class="nav" data-view="directors">Directors <span id="directorCount">0</span></button></div></details></nav></aside>
-<main data-analytics-region="editor"><div class="page-heading"><div><div class="eyebrow" id="pageEyebrow" hidden></div><h1 id="pageTitle">Board</h1><p id="pageCopy" hidden></p></div><div class="action-row"><button id="toggleSplit" aria-pressed="true">Board + tree</button><button id="toggleInspector" aria-pressed="false">Show inspector</button><button id="tutorialReplay">Guide</button><button id="reloadHouse">Pursuit demo</button><button id="newBlank">New canvas</button></div></div>
+<main data-analytics-region="editor"><div class="page-heading"><div><div class="eyebrow" id="pageEyebrow" hidden></div><h1 id="pageTitle">Board</h1><p id="pageCopy" hidden></p></div><div class="action-row"><button id="toggleSplit" aria-pressed="true">Board + tree</button><button id="toggleInspector" aria-pressed="false">Show inspector</button><button id="tutorialReplay">Guide</button><button id="reloadHouse">Pursuit demo</button><button id="newBlank">New Project</button></div></div>
 <section id="tutorialGuide" class="tutorial-guide"></section><div id="simulationWorkspace"><section id="boardView"><div class="board-top"><span>Untitled board <small>64 × 44 cells</small></span><div><label><input id="gridToggle" type="checkbox" checked> Grid</label><button id="fit">Fit board</button><button id="zoomOut" aria-label="Zoom out">−</button><output id="zoomLabel">100%</output><button id="zoomIn" aria-label="Zoom in">＋</button></div></div><details class="debug-panel" id="debugPanel"><summary>Debug view </summary><div class="debug-controls"><label><input id="debugEnabled" type="checkbox" checked> Show overlays</label><label><input id="debugCollision" type="checkbox"> Collision</label><label><input id="debugPaths" type="checkbox" checked> Goals &amp; paths</label><label><input id="debugHints" type="checkbox" checked> Director messages</label><label><input id="debugSignals" type="checkbox" checked> Signals</label><label><input id="debugLabels" type="checkbox" checked> Decision labels</label><label><input id="debugAll" type="checkbox"> All creatures (up to 20)</label></div><div id="debugReadout" class="debug-readout"></div></details><div class="board-wrap" id="boardWrap" data-analytics-region="board"><canvas id="board" aria-label="Sandbox board. Select Draw and an object type to paint. Select objects to inspect. Drag in Pan mode to move the view."></canvas><div id="remotePointers" class="remote-pointers" aria-hidden="true"></div><div id="emptyBoard"><div class="empty-mark">＋</div><h2>Empty board</h2><button id="emptyCreate">Create your first object type</button></div><div class="floating-toolbar"><button data-mode="select" class="active" title="Select (V)">Select <kbd>V</kbd></button><button data-mode="draw" title="Draw (B)">Draw <kbd>B</kbd></button><button data-mode="erase" title="Erase (E)">Erase <kbd>E</kbd></button><button data-mode="zone">Paint zone</button><button data-mode="zoneErase">Erase zone</button><span></span><button data-mode="pan" title="Pan (H)">Pan <kbd>H</kbd></button><button id="undo" title="Undo (Ctrl+Z)">↶</button><button id="redo" title="Redo (Ctrl+Shift+Z)">↷</button></div><div class="board-caption" id="boardCaption">Select an object type to start drawing</div><div id="coords">X — / Y —</div></div><div class="transport"><div><button id="play" class="primary">▶ Run</button><button id="step">Step</button><select id="speed" aria-label="Simulation speed"><option value="1">1×</option><option value="5">5×</option><option value="20">20×</option></select><button id="reset">Reset run</button></div><div><span id="runLabel">PAUSED</span><strong id="tick">Tick 0</strong></div></div></section>
 <section id="behaviorView" class="library hidden"><div class="section-heading"><div><h2>Behavior tree + Utility AI</h2></div><select id="brainTool" aria-label="Object type whose behavior tree to edit"></select></div><div class="brain-instance-row"><label>Watch placed instance<select id="brainInstance" aria-label="Placed instance whose decisions to watch"></select></label><span id="brainLiveStatus" class="brain-live-status"></span></div><div id="brainContent"></div></section>
 </div><section id="toolsView" class="library hidden"><div class="section-heading"><div><h2>Object types</h2></div><button class="primary" id="libraryNewTool">＋ New object type</button></div><div id="toolCards" class="cards"></div></section>
@@ -79,6 +272,48 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
 <section id="directorsView" class="library hidden"><div class="section-heading"><div><h2>Directors</h2></div><button class="primary" id="newDirector">＋ New director</button></div><div id="directorCards"></div></section><section id="historyView" class="library hidden"><div class="section-heading"><div><h2>World history generator</h2></div></div><div class="history-controls"><label class="field">Seed<input id="historySeed" maxlength="100" value="world-1"></label><label class="field">Years<input id="historyYears" type="number" min="1" max="500" value="100"></label><label class="field">Factions<input id="historyCount" type="number" min="1" max="10" value="3"></label><button class="primary" id="generateHistory">Generate history</button></div><label class="field">Optional faction names, one per line<textarea id="historyNames" rows="3" maxlength="1000" placeholder="Your own faction names"></textarea></label><div id="historyFactions" class="cards"></div><div id="historyEntries"></div></section>
 <section class="event-panel"><div class="event-heading"><strong>Event trace</strong><span id="eventSummary">No events yet</span><button id="clearEvents">Clear</button></div><div id="events"></div></section><footer><span>PROTOTEER</span><span id="objectCount">0 objects placed</span></footer></main>
 <aside class="right" data-analytics-region="inspector"><div class="workspace-label">INSPECTOR <span id="inspectType">NOTHING SELECTED</span></div><div id="inspector"></div></aside></div>
+</div>
+<dialog id="projectNameDialog" class="project-hub-dialog" aria-labelledby="projectNameTitle" data-analytics-region="dialog">
+  <h2 id="projectNameTitle">New Project</h2>
+  <form id="projectNameForm">
+    <label class="field" for="projectNameInput">Project name
+      <input id="projectNameInput" type="text" name="name" maxlength="100" required autofocus>
+    </label>
+    <p id="projectNameStatus" class="project-hub-status" role="status"></p>
+    <div class="project-hub-actions">
+      <button id="projectNameCancel" type="button">Cancel</button>
+      <button id="projectNameSubmit" type="submit" class="primary">Create project</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="projectInviteDialog" class="project-hub-dialog" aria-labelledby="projectInviteTitle" data-analytics-region="dialog">
+  <h2 id="projectInviteTitle">Invite</h2>
+  <form id="projectInviteForm">
+    <label id="projectInviteBackendField" class="field project-invite-backend" for="projectInviteBackendUrl" hidden>Convex deployment URL
+      <input id="projectInviteBackendUrl" type="url" name="deploymentUrl" autocomplete="url" inputmode="url">
+    </label>
+    <label class="field" for="projectInviteRole">Link access
+      <select id="projectInviteRole" name="role">
+        <option value="viewer" selected>Can view</option>
+        <option value="editor">Can edit</option>
+      </select>
+    </label>
+    <div id="projectInviteResult" class="project-invite-result" hidden>
+      <label for="projectInviteLink">Invite link</label>
+      <div class="share-grid">
+        <input id="projectInviteLink" type="text" readonly>
+        <button id="projectInviteCopy" type="button">Copy link</button>
+      </div>
+    </div>
+    <p id="projectInviteStatus" class="project-hub-status" role="status"></p>
+    <ul id="projectInviteGrants" class="project-invite-grants" aria-label="Invite links" hidden></ul>
+    <div class="project-hub-actions">
+      <button id="projectInviteRecovery" type="button" hidden>Download owner recovery</button>
+      <button id="projectInviteClose" type="button">Close</button>
+      <button id="projectInviteSubmit" type="submit" class="primary">Create link</button>
+    </div>
+  </form>
+</dialog>
 <dialog id="dialog" data-analytics-region="dialog"><div class="dialog-head"><div><span class="eyebrow" id="dialogEyebrow">EDITOR</span><h2 id="dialogTitle"></h2></div><button id="closeDialog" aria-label="Close dialog">×</button></div><div id="dialogBody"></div></dialog><div id="toast" role="status"></div><div id="usageConsent" class="usage-consent" hidden role="dialog" aria-label="Anonymous usage data"><p><strong>Help improve Prototeer?</strong> Allow anonymous interface actions and heatmap positions. Project content and artwork are never included.</p><div><button id="declineUsage">No thanks</button><button id="allowUsage" class="primary">Allow</button></div></div><div class="mobile-collaboration-gate" id="mobileCollaborationGate"><div><h1>Open this shared project on desktop</h1><p>Realtime collaboration is desktop-only in this version of Prototeer.</p></div></div><input type="file" id="importFile" accept="application/json" hidden><script>
 (()=>{
 if(globalThis.location?.protocol==="file:"){const link=document.getElementById("downloadPortable");if(link)link.hidden=true;}
@@ -5627,6 +5862,7 @@ globalThis.convex=convex;
     let presenceState = { view: 'board' };
     let presenceSentAt = 0;
     let tailGeneration = 0;
+    let boardGeneration = 0;
     let simulationStatus = 'paused';
     let simulationGeneration = 0;
     let controller = false;
@@ -5733,11 +5969,12 @@ globalThis.convex=convex;
       return value;
     }
 
-    async function applyIncoming(operation, notify = true) {
+    async function applyIncoming(operation, notify = true, board = active) {
       if (!shadow || seen.has(operation.opId)) return;
+      const materialized = await materializeOperation(operation);
+      if (active !== board || !shadow || seen.has(operation.opId)) return;
       seen.add(operation.opId);
       if (seen.size > 4000) seen.delete(seen.values().next().value);
-      const materialized = await materializeOperation(operation);
       shadow = ops.apply(shadow, materialized) || shadow;
       versions[operation.resourceKey] = operation.resultingVersion ?? versions[operation.resourceKey] ?? 0;
       revision = Math.max(revision, operation.sequence || 0);
@@ -5747,6 +5984,7 @@ globalThis.convex=convex;
 
     async function processTail(result) {
       if (!active || !result) return;
+      const board = active;
       if (result.needsBootstrap) {
         await bootstrap(active.projectId, active.token, { preserveUi: true });
         return;
@@ -5757,7 +5995,8 @@ globalThis.convex=convex;
       const list = [...(result.operations || [])].sort((a, b) => a.sequence - b.sequence);
       const remote = [];
       for (const operation of list) if (operation.sequence > revision) {
-        const materialized = await applyIncoming(operation, false);
+        const materialized = await applyIncoming(operation, false, board);
+        if (active !== board) return;
         if (materialized) remote.push(materialized);
       }
       if (remote.length) {
@@ -5857,13 +6096,20 @@ globalThis.convex=convex;
 
     async function bootstrap(projectId, token, config = {}) {
       requireClient();
+      const generation = ++boardGeneration;
+      const managed = config.managed ?? (active?.projectId === projectId && active?.token === token && active.managed);
       emitStatus('syncing');
       const data = await client.query(apiRoot.projects.open, { publicId: projectId, token });
-      active = { projectId, token };
+      if (generation !== boardGeneration) throw new Error('board_changed');
+      active = { projectId, token, managed };
+      seen.clear();
+      artworkByData.clear();
+      artworkById.clear();
       let project = JSON.parse(data.chunks.join(''));
       let replayRevision = data.project.snapshotRevision;
       const replay = async operation => {
         const materialized = await materializeOperation(operation);
+        if (generation !== boardGeneration) throw new Error('board_changed');
         project = ops.apply(project, materialized) || project;
         seen.add(operation.opId);
         replayRevision = Math.max(replayRevision, operation.sequence || 0);
@@ -5873,6 +6119,7 @@ globalThis.convex=convex;
       while (replayRevision < data.project.revision) {
         if (++pageCount > 200) throw new Error('checkpoint_required');
         const page = await client.query(apiRoot.collaboration.tail, { publicId: projectId, token, after: replayRevision });
+        if (generation !== boardGeneration) throw new Error('board_changed');
         if (page.needsBootstrap || !page.operations?.length) throw new Error('checkpoint_required');
         for (const operation of [...page.operations].sort((a, b) => a.sequence - b.sequence)) await replay(operation);
       }
@@ -5883,8 +6130,10 @@ globalThis.convex=convex;
       shadow = clone(project);
       pendingWorld = null;
       simulationStatus = data.project.simulationStatus;
-      remember({ projectId, token, role, name: data.project.name });
-      changeHash(projectId, token);
+      if (!managed) {
+        remember({ projectId, token, role, name: data.project.name });
+        changeHash(projectId, token);
+      }
       clearSubscriptions();
       bindSubscriptions();
       hooks.onBootstrap?.(clone(project), { role, revision, preserveUi: Boolean(config.preserveUi), projectId });
@@ -6216,8 +6465,11 @@ globalThis.convex=convex;
       return bootstrap(projectId, record.token);
     }
 
-    function leave() {
+    function leave({ preserveLocation = false } = {}) {
+      boardGeneration++;
       clearSubscriptions();
+      clearTimeout(flushTimer);
+      flushTimer = 0;
       active = null;
       role = 'viewer';
       revision = snapshotRevision = 0;
@@ -6225,10 +6477,15 @@ globalThis.convex=convex;
       shadow = pendingWorld = null;
       simulationStatus = 'paused';
       controller = false;
-      const url = new URL(global.location.href);
-      url.hash = '';
-      global.history?.replaceState?.(null, '', url);
-      global.document?.body?.classList.remove('collaboration-linked');
+      seen.clear();
+      artworkByData.clear();
+      artworkById.clear();
+      if (!preserveLocation) {
+        const url = new URL(global.location.href);
+        url.hash = '';
+        global.history?.replaceState?.(null, '', url);
+        global.document?.body?.classList.remove('collaboration-linked');
+      }
       hooks.onPresence?.([]);
       emitStatus('local');
     }
@@ -6238,6 +6495,51 @@ globalThis.convex=convex;
       closed = true;
       clearSubscriptions();
       client?.close?.();
+    };
+
+    const boardSnapshot = (publicId, world) => ({
+      publicId,
+      name: world.name,
+      formatVersion: world.version,
+      ...splitUtf8(world),
+    });
+    const workspaces = {
+      url: () => deploymentUrl,
+      desktop: isDesktop,
+      token: randomKey,
+      async create(publicId, ownerToken, name, boardId, world) {
+        return requireClient().mutation(apiRoot.workspaces.create, {
+          publicId, ownerToken, name, sessionId: guest.sessionId, board: boardSnapshot(boardId, world),
+        });
+      },
+      async open(access) {
+        return requireClient().query(apiRoot.workspaces.open, access);
+      },
+      subscribe(access, onChange, onError) {
+        return requireClient().onUpdate(apiRoot.workspaces.open, access, onChange, onError);
+      },
+      async addBoard(access, boardId, world) {
+        return requireClient().mutation(apiRoot.workspaces.addBoard, {
+          ...access, sessionId: guest.sessionId, board: boardSnapshot(boardId, world),
+        });
+      },
+      async updateDraftBoard(access, boardId, world) {
+        return requireClient().mutation(apiRoot.workspaces.updateDraftBoard, {
+          ...access, sessionId: guest.sessionId, board: boardSnapshot(boardId, world),
+        });
+      },
+      async invite(access, newToken, roleName, expectedBoardIds) {
+        return requireClient().mutation(apiRoot.workspaces.createCapability, {
+          ...access, newToken, role: roleName, label: roleName === 'editor' ? 'Can edit' : 'Can view',
+          ...(expectedBoardIds ? { expectedBoardIds } : {}),
+        });
+      },
+      async listCapabilities(access) {
+        return requireClient().query(apiRoot.workspaces.listCapabilities, access);
+      },
+      async revokeCapability(access, capabilityId) {
+        return requireClient().mutation(apiRoot.workspaces.revokeCapability, { ...access, capabilityId });
+      },
     };
 
     return {
@@ -6251,8 +6553,10 @@ globalThis.convex=convex;
       joinFromLocation,
       createOnline,
       bootstrap,
+      workspaces,
       projectChanged,
       flush,
+      hasPendingEdits: () => Boolean(pendingWorld || flushing),
       checkpoint,
       editableWorld,
       shareInfo,
@@ -6278,6 +6582,484 @@ globalThis.convex=convex;
   }
 
   global.PrototeerCollaboration = { create, splitUtf8, accessUrl };
+})(globalThis);
+
+(function installProjectHome(global) {
+  'use strict';
+
+  const localPrefix = 'prototeer.project-home.local.';
+  const sharedPrefix = 'prototeer.project-home.shared.';
+  const validId = /^[A-Za-z0-9_-]{16,80}$/;
+  const validToken = /^[A-Za-z0-9_-]{43,256}$/;
+  const roleRank = { viewer: 0, editor: 1, owner: 2 };
+
+  function start({ api, createBoard, openLocal, openShared, openLegacy, exitEditor, connect, collaboration, chooseImport, openDemo, download, copy, toast, record }) {
+    const $ = id => global.document.getElementById(id);
+    const online = collaboration?.workspaces;
+    let project = null;
+    let inEditor = false;
+    let busy = false;
+    let subscription;
+    let pendingBoard = null;
+
+    function stored(key) {
+      try { return JSON.parse(global.localStorage.getItem(key)); }
+      catch { return null; }
+    }
+
+    function records(prefix) {
+      try {
+        return Object.keys(global.localStorage).filter(key => key.startsWith(prefix))
+          .map(stored).filter(entry => entry && validId.test(entry.publicId));
+      } catch { return []; }
+    }
+
+    function rememberLocal(entry) {
+      global.localStorage.setItem(localPrefix + entry.publicId, JSON.stringify(entry));
+    }
+
+    function rememberShared(entry) {
+      try {
+        const previous = stored(sharedPrefix + entry.publicId);
+        if (previous && roleRank[previous.role] > roleRank[entry.role]) return;
+        global.localStorage.setItem(sharedPrefix + entry.publicId, JSON.stringify(entry));
+      } catch {
+        // Shared links still work without browser storage.
+      }
+    }
+
+    function accessOf(entry) {
+      return { publicId: entry.publicId, token: entry.token };
+    }
+
+    function setRoute(params = {}) {
+      const url = new URL(global.location.href);
+      url.hash = new URLSearchParams(params).toString();
+      global.history.replaceState(null, '', url);
+      global.document.body.classList.toggle('collaboration-linked', Boolean(params.workspace || params.project));
+    }
+
+    function routeFor(entry, boardId) {
+      const params = entry.shared
+        ? { workspace: entry.publicId, access: entry.token, backend: entry.backend }
+        : { local: entry.publicId };
+      if (boardId) params.board = boardId;
+      return params;
+    }
+
+    function inviteUrl(entry, token) {
+      const url = new URL(global.location.href);
+      url.hash = new URLSearchParams(routeFor({ ...entry, token })).toString();
+      return url.href;
+    }
+
+    function show(page) {
+      inEditor = page === 'editorShell';
+      for (const id of ['projectLobby', 'projectPage', 'editorShell']) $(id).hidden = id !== page;
+      $('editorBackToProject').hidden = !project;
+      $('projectName').setAttribute('aria-label', project ? 'Board name' : 'Project name');
+    }
+
+    function buttonRow(list, label, onClick) {
+      const item = global.document.createElement('li');
+      const button = global.document.createElement('button');
+      button.type = 'button';
+      button.textContent = label;
+      button.onclick = onClick;
+      item.append(button);
+      list.append(item);
+    }
+
+    function status(id, message = '') {
+      $(id).textContent = message;
+    }
+
+    function exclusive(statusId, action) {
+      return async () => {
+        if (busy) return;
+        busy = true;
+        status(statusId);
+        try { await action(); }
+        catch (error) {
+          const code = error?.data?.code ?? error?.message;
+          const message = {
+            desktop_required: 'Open this shared project on desktop.',
+            online_backend_not_configured: 'Connect a Convex deployment to create an invite link.',
+            invalid_convex_url: 'Enter a valid Convex deployment URL.',
+            access_denied: 'This invite link is invalid or has been revoked.',
+            project_not_found: 'This shared project is unavailable.',
+            workspace_not_found: 'This shared project is unavailable.',
+            project_too_large: 'A board exceeds 12 MB. Use smaller artwork files before sharing.',
+            board_limit_reached: 'This project already has 50 boards.',
+            access_link_limit_reached: 'This project has reached its invite link limit.',
+          }[code] ?? (typeof code === 'string' && /[ .]/.test(code) && !code.includes('[CONVEX')
+            ? code : 'Could not complete this action. Try again.');
+          status(statusId, message);
+          if (inEditor) toast(message);
+        } finally { busy = false; }
+      };
+    }
+
+    function stopWatching() {
+      subscription?.();
+      subscription = null;
+    }
+
+    async function showLobby() {
+      stopWatching();
+      pendingBoard = null;
+      project = null;
+      show('projectLobby');
+      setRoute();
+      const list = $('lobbyProjectList');
+      list.replaceChildren();
+      status('lobbyStatus');
+      const local = records(localPrefix);
+      const shared = records(sharedPrefix);
+      const sharedIds = new Set(shared.map(entry => entry.publicId));
+      for (const entry of [...local.filter(entry => !sharedIds.has(entry.sharedId)), ...shared]
+        .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))) {
+        buttonRow(list, entry.name, exclusive('lobbyStatus', () => openProject(entry)));
+      }
+      try {
+        const saved = await api('projects');
+        const grouped = new Set(local.flatMap(entry => entry.boards.map(board => board.publicId)));
+        for (const world of saved) {
+          if (grouped.has(world.id)) continue;
+          const entry = {
+            publicId: world.id, name: world.name, role: 'owner',
+            boards: [{ publicId: world.id, name: world.name }],
+          };
+          buttonRow(list, world.name, exclusive('lobbyStatus', () => openProject(entry)));
+        }
+      } catch {
+        status('lobbyStatus', 'Could not list browser saves. You can still import a project file.');
+      }
+      for (const entry of collaboration?.listKnownProjects() ?? []) {
+        buttonRow(list, entry.name, exclusive('lobbyStatus', async () => {
+          show('editorShell');
+          try { await openLegacy(entry.projectId); }
+          catch (error) { show('projectLobby'); throw error; }
+        }));
+      }
+    }
+
+    function renderBoards() {
+      $('projectPageTitle').textContent = project.name;
+      $('projectAddBoard').hidden = project.role === 'viewer';
+      $('projectInvite').hidden = project.role !== 'owner';
+      const list = $('projectBoardList');
+      list.replaceChildren();
+      for (const board of project.boards) {
+        buttonRow(list, board.name, exclusive('projectPageStatus', () => showBoard(board.publicId)));
+      }
+    }
+
+    async function selectDeployment(backend) {
+      if (!online?.desktop()) throw new Error('desktop_required');
+      if (backend && online.url() !== backend) await connect(backend);
+      if (!collaboration.available()) throw new Error('online_backend_not_configured');
+    }
+
+    function watchSharedProject(entry) {
+      const access = accessOf(entry);
+      subscription = online.subscribe(access, updated => {
+        if (project?.publicId !== access.publicId || project.token !== access.token) return;
+        project = { ...project, ...updated };
+        rememberShared(project);
+        renderBoards();
+      }, () => status('projectPageStatus', 'The project could not refresh. Check the link or your connection.'));
+    }
+
+    async function openProject(entry, boardId) {
+      stopWatching();
+      pendingBoard = null;
+      if (entry.shared) {
+        await selectDeployment(entry.backend);
+        const current = await online.open(accessOf(entry));
+        entry = { ...entry, ...current, backend: online.url(), updatedAt: Date.now() };
+        rememberShared(entry);
+      }
+      project = entry;
+      show('projectPage');
+      setRoute(routeFor(project));
+      status('projectPageStatus');
+      renderBoards();
+      if (project.shared) watchSharedProject(project);
+      if (boardId && project.boards.some(board => board.publicId === boardId)) await showBoard(boardId);
+      record?.('project_opened', { panel: 'projects' });
+    }
+
+    async function showBoard(boardId) {
+      const entry = project;
+      if (entry.shared) {
+        await openShared(boardId, entry.token);
+      } else {
+        const board = await api('projects/' + boardId);
+        openLocal(board);
+      }
+      show('editorShell');
+      setRoute(routeFor(entry, boardId));
+      record?.('project_opened', { panel: 'projects' });
+    }
+
+    async function saveBoard(world) {
+      await api('projects/' + world.id, { method: 'PUT', body: JSON.stringify(world) });
+    }
+
+    function updateBoardName(id, name) {
+      if (!project || project.shared) return;
+      const latest = stored(localPrefix + project.publicId) ?? project;
+      const board = latest.boards.find(board => board.publicId === id);
+      if (!board || board.name === name) return;
+      const updated = { ...latest, boards: latest.boards.map(board => board.publicId === id ? { ...board, name } : board) };
+      rememberLocal(updated);
+      project = updated;
+    }
+
+    async function leaveWorkspace() {
+      if (!inEditor) return;
+      const saved = await exitEditor(Boolean(project?.shared));
+      if (saved) updateBoardName(saved.id, saved.name);
+      inEditor = false;
+    }
+
+    function openNameDialog() {
+      $('projectNameInput').value = '';
+      status('projectNameStatus');
+      $('projectNameDialog').showModal();
+      $('projectNameInput').focus();
+    }
+
+    async function createProject() {
+      const name = $('projectNameInput').value.trim();
+      if (!name) throw new Error('Enter a project name.');
+      await leaveWorkspace();
+      const world = createBoard('Board 1');
+      const entry = { publicId: global.crypto.randomUUID(), name, role: 'owner', updatedAt: Date.now(),
+        boards: [{ publicId: world.id, name: world.name }] };
+      await saveBoard(world);
+      rememberLocal(entry);
+      $('projectNameDialog').close();
+      await openProject(entry);
+    }
+
+    async function addBoard() {
+      if (!project || project.role === 'viewer') return;
+      const entry = project.shared ? project : stored(localPrefix + project.publicId) ?? project;
+      if (entry.boards.length >= 50) throw new Error('board_limit_reached');
+      const names = new Set(entry.boards.map(board => board.name));
+      let number = 1;
+      while (names.has('Board ' + number)) number++;
+      pendingBoard ??= createBoard('Board ' + number);
+      if (entry.shared) {
+        await online.addBoard(accessOf(entry), pendingBoard.id, pendingBoard);
+        const current = await online.open(accessOf(entry));
+        project = { ...entry, ...current };
+        rememberShared(project);
+      } else {
+        await saveBoard(pendingBoard);
+        const latest = stored(localPrefix + entry.publicId) ?? entry;
+        const updated = { ...latest, updatedAt: Date.now(),
+          boards: [...latest.boards, { publicId: pendingBoard.id, name: pendingBoard.name }] };
+        rememberLocal(updated);
+        project = updated;
+      }
+      pendingBoard = null;
+      renderBoards();
+    }
+
+    async function publishProject() {
+      const entry = stored(localPrefix + project.publicId) ?? project;
+      const endpoint = online.url();
+      const upload = entry.upload?.backend === endpoint ? entry.upload : {
+        publicId: online.token(24), token: online.token(), backend: endpoint, boardIds: {},
+      };
+      for (const board of entry.boards) upload.boardIds[board.publicId] ??= online.token(24);
+      rememberLocal({ ...entry, upload });
+      const access = accessOf(upload);
+      const boardIds = [];
+      upload.snapshots ??= {};
+      for (const board of entry.boards) {
+        const world = await api('projects/' + board.publicId);
+        const onlineId = upload.boardIds[board.publicId];
+        const fingerprint = world.updated ?? null;
+        if (!(onlineId in upload.snapshots)) {
+          upload.snapshots[onlineId] = fingerprint;
+          rememberLocal({ ...entry, upload });
+        }
+        if (!boardIds.length) await online.create(upload.publicId, upload.token, entry.name, onlineId, world);
+        else await online.addBoard(access, onlineId, world);
+        if (upload.snapshots[onlineId] !== fingerprint) {
+          await online.updateDraftBoard(access, onlineId, world);
+          upload.snapshots[onlineId] = fingerprint;
+          rememberLocal({ ...entry, upload });
+        }
+        boardIds.push(onlineId);
+      }
+      const current = await online.open(access);
+      const result = { ...access, ...current, backend: endpoint, shared: true, updatedAt: Date.now() };
+      return { entry, shared: result, boardIds };
+    }
+
+    async function refreshGrants(entry) {
+      const list = $('projectInviteGrants');
+      list.replaceChildren();
+      list.hidden = true;
+      if (!entry?.shared || entry.role !== 'owner') return;
+      const grants = await online.listCapabilities(accessOf(entry));
+      if (!$('projectInviteDialog').open || project?.publicId !== entry.publicId) return;
+      for (const grant of grants.filter(item => item.role !== 'owner' && !item.revokedAt)) {
+        const item = global.document.createElement('li');
+        const label = global.document.createElement('span');
+        label.textContent = grant.label;
+        const revoke = global.document.createElement('button');
+        revoke.type = 'button';
+        revoke.textContent = 'Revoke';
+        revoke.setAttribute('aria-label', 'Revoke ' + grant.label + ' link');
+        revoke.onclick = exclusive('projectInviteStatus', async () => {
+          await online.revokeCapability(accessOf(entry), grant.id);
+          $('projectInviteResult').hidden = true;
+          status('projectInviteStatus', 'Link revoked.');
+          await refreshGrants(entry);
+        });
+        item.append(label, revoke);
+        list.append(item);
+      }
+      list.hidden = !list.childElementCount;
+    }
+
+    function inviteDialog() {
+      if (project?.role !== 'owner') return;
+      $('projectInviteRole').value = 'viewer';
+      $('projectInviteResult').hidden = true;
+      $('projectInviteLink').value = '';
+      $('projectInviteBackendField').hidden = Boolean(collaboration?.available()) || !online?.desktop();
+      $('projectInviteRecovery').hidden = !project.shared;
+      status('projectInviteStatus', online?.desktop() ? '' : 'Open this project on desktop to invite someone.');
+      $('projectInviteDialog').showModal();
+      void refreshGrants(project).catch(() => {});
+    }
+
+    async function createInvite() {
+      const role = $('projectInviteRole').value === 'editor' ? 'editor' : 'viewer';
+      const endpoint = $('projectInviteBackendUrl').value.trim();
+      await selectDeployment(collaboration?.available() ? '' : endpoint);
+      $('projectInviteBackendField').hidden = true;
+      const publication = project.shared ? null : await publishProject();
+      const entry = publication?.shared ?? project;
+      if (publication) {
+        rememberShared(entry);
+        const { upload, ...local } = publication.entry;
+        rememberLocal({ ...local, sharedId: entry.publicId });
+        project = entry;
+        setRoute(routeFor(entry));
+        renderBoards();
+        watchSharedProject(entry);
+        $('projectInviteRecovery').hidden = false;
+      }
+      const token = online.token();
+      await online.invite(accessOf(entry), token, role, publication?.boardIds);
+      $('projectInviteLink').value = inviteUrl(entry, token);
+      $('projectInviteResult').hidden = false;
+      await refreshGrants(entry).catch(() => {});
+    }
+
+    $('lobbyNewProject').onclick = openNameDialog;
+    $('projectNameCancel').onclick = () => $('projectNameDialog').close();
+    $('projectNameForm').onsubmit = event => {
+      event.preventDefault();
+      if (!$('projectNameInput').reportValidity()) return;
+      void exclusive('projectNameStatus', createProject)();
+    };
+    $('lobbyImport').onclick = chooseImport;
+    const launchDemo = exclusive('projectPageStatus', async () => {
+      await leaveWorkspace();
+      stopWatching();
+      project = null;
+      setRoute();
+      openDemo();
+      show('editorShell');
+    });
+    $('lobbyDemo').onclick = launchDemo;
+    $('projectAddBoard').onclick = exclusive('projectPageStatus', addBoard);
+    $('projectBackToLobby').onclick = exclusive('projectPageStatus', showLobby);
+    $('editorBackToProject').onclick = exclusive('projectPageStatus', async () => {
+      await leaveWorkspace();
+      show('projectPage');
+      setRoute(routeFor(project));
+      renderBoards();
+    });
+    $('projectInvite').onclick = inviteDialog;
+    $('projectInviteClose').onclick = () => $('projectInviteDialog').close();
+    $('projectInviteCopy').onclick = () => copy($('projectInviteLink').value);
+    $('projectInviteRole').onchange = () => {
+      $('projectInviteLink').value = '';
+      $('projectInviteResult').hidden = true;
+      status('projectInviteStatus');
+    };
+    $('projectInviteRecovery').onclick = () => {
+      if (!project?.shared || project.role !== 'owner') return;
+      download({ type: 'prototeer-project-recovery', version: 1, projectName: project.name,
+        url: inviteUrl(project, project.token) }, project.name + '-recovery-key');
+    };
+    $('projectInviteForm').onsubmit = event => {
+      event.preventDefault();
+      if (!$('projectInviteDialog').open) return;
+      void exclusive('projectInviteStatus', async () => {
+        const controls = ['projectInviteRole', 'projectInviteSubmit', 'projectInviteClose'];
+        for (const control of controls) $(control).disabled = true;
+        try { await createInvite(); }
+        finally { for (const control of controls) $(control).disabled = false; }
+      })();
+    };
+
+    async function restoreLocation() {
+      const params = new URLSearchParams(global.location.hash.slice(1));
+      const workspace = params.get('workspace');
+      const local = params.get('local');
+      const board = params.get('board');
+      if (validId.test(workspace) && validToken.test(params.get('access'))) {
+        global.document.body.classList.add('collaboration-linked');
+        await openProject({ publicId: workspace, token: params.get('access'), backend: params.get('backend') || '', shared: true }, board);
+      } else if (validId.test(params.get('project')) && validToken.test(params.get('access'))) {
+        show('editorShell');
+        try { await openLegacy(); }
+        catch (error) { show('projectLobby'); throw error; }
+      } else if (validId.test(local)) {
+        const known = stored(localPrefix + local);
+        const world = known ? null : await api('projects/' + local);
+        await openProject(known ?? { publicId: local, name: world.name, role: 'owner', boards: [{ publicId: local, name: world.name }] }, board);
+      } else {
+        await showLobby();
+      }
+    }
+
+    void exclusive('lobbyStatus', restoreLocation)();
+    return {
+      newProject: openNameDialog,
+      launchDemo,
+      isSharedBoard: () => Boolean(project?.shared && inEditor),
+      lobby: exclusive('lobbyStatus', async () => { await leaveWorkspace(); await showLobby(); }),
+      showStandalone: () => { stopWatching(); project = null; setRoute(); show('editorShell'); },
+      openInvite: () => {
+        if (!project) return false;
+        if (project.role !== 'owner') { toast('Only the project owner can create invite links.'); return true; }
+        void exclusive('projectPageStatus', async () => {
+          await leaveWorkspace();
+          show('projectPage');
+          setRoute(routeFor(project));
+          renderBoards();
+          inviteDialog();
+        })();
+        return true;
+      },
+      updateBoardName,
+      inEditor: () => inEditor,
+    };
+  }
+
+  global.PrototeerProjectHome = { start };
 })(globalThis);
 
 const WIDTH=64,HEIGHT=44,MAX_BYTES=12582912;
@@ -6716,7 +7498,9 @@ let storageFactory;try{storageFactory=globalThis.indexedDB;}catch{}globalThis.Pr
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const GRAPH_X=1.3,GRAPH_Y=1.65,GRAPH_NODE_WIDTH=270,GRAPH_PORT_Y=55;
 let splitEnabled=true,splitInspector=false,followActive=true,graphToolsOpen=false,graphDrag=null,connecting=null;
-let world=createDemoWorld(),view='board',toolId=world.tutorial.toolId,entityId=world.tutorial.botId,zoneId=(world.tutorial.primaryZone??world.tutorial.chargingZone),guideStep=0,guideOpen=true,mode='select',running=false,baseline=null,dirty=true,revision=0,zoom=1.45,pan={x:0,y:0},pointer=null,lastCell=null,transform={x:0,y:0,size:1},undo=[],redo=[],imageCache=new Map(),toastTimer;
+let projectHome=null;
+const startsInLobby=Boolean(globalThis.PrototeerProjectHome);
+let world=startsInLobby?createWorld():createDemoWorld(),view='board',toolId=world.tutorial?.toolId??null,entityId=world.tutorial?.botId??null,zoneId=(world.tutorial?.primaryZone??world.tutorial?.chargingZone??null),guideStep=0,guideOpen=!startsInLobby,mode='select',running=false,baseline=null,dirty=!startsInLobby,revision=0,zoom=1.45,pan={x:0,y:0},pointer=null,lastCell=null,transform={x:0,y:0,size:1},undo=[],redo=[],imageCache=new Map(),toastTimer;
 let projectRevision=0,runtimeRevision=0,drawFrame=0,wireFrame=0,librariesInitialized=false,eventsRenderKey='',debugRenderCache={key:'',snapshot:null,readout:''};
 let collaboration=null,analytics=null,applyingRemote=false,sharedController=false,analyticsConsent=false,boardStrokeStart=0,boardStrokeCells=0;
 const zoneRenderCache=new WeakMap();
@@ -6776,7 +7560,7 @@ function doUndo(reverse=false){if(collaboration?.active())return toast('Shared u
 async function api(path,options){if(globalThis.PrototeerStorage)return globalThis.PrototeerStorage.request(path,options);const response=await fetch('/api/'+path,options);if(!response.ok){let msg='Backend request failed';try{msg=(await response.json()).error||msg;}catch{}throw Error(msg);}return response.json();}
 function downloadBlob(blob,fileName){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=fileName;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function download(data,name,extension='.json'){downloadBlob(new Blob([JSON.stringify(data,null,extension==='.json'?2:0)],{type:'application/json'}),(name||'world').replace(/[^a-z0-9_-]/gi,'-')+extension);}
-$('save').onclick=async()=>{const candidate=collaboration?.active()&&running?(collaboration.editableWorld()??world):world;if(!validWorld(candidate))return toast('Project contains an incomplete or invalid definition. Check your object types and rules.');const body=JSON.stringify(candidate);if(new TextEncoder().encode(body).length>MAX_BYTES)return toast('Project exceeds 12 MB. Use smaller artwork files.');const rev=revision,b=$('save');b.disabled=true;b.textContent='Saving…';analytics?.record('save_started',{panel:'header',flow:'project-save'});try{if(collaboration?.active())await collaboration.checkpoint();else await api('projects/'+world.id,{method:'PUT',headers:{'Content-Type':'application/json'},body});if(revision===rev||collaboration?.active()){dirty=false;$('saveState').textContent=collaboration?.active()?'Synced':'Saved';}analytics?.record('save_succeeded',{panel:'header',flow:'project-save',result:'success'});toast(collaboration?.active()?'Shared project revision saved.':globalThis.PrototeerStorage?'Project and artwork saved in this browser.':'Project and artwork saved to the backend.');}catch(e){analytics?.record('save_failed',{panel:'header',flow:'project-save',result:'error',context:{errorCode:'save_failed'}});if(globalThis.PrototeerStorage&&!collaboration?.active()){download(world,world.name);toast('Browser save failed. Downloaded a project file instead; use Import JSON to reopen it.');}else toast('Could not save this project.');}finally{b.disabled=false;b.textContent='Save project';}};
+$('save').onclick=async()=>{const candidate=collaboration?.active()&&running?(collaboration.editableWorld()??world):world;if(!validWorld(candidate))return toast('Project contains an incomplete or invalid definition. Check your object types and rules.');const body=JSON.stringify(candidate);if(new TextEncoder().encode(body).length>MAX_BYTES)return toast('Project exceeds 12 MB. Use smaller artwork files.');const rev=revision,b=$('save');b.disabled=true;b.textContent='Saving…';analytics?.record('save_started',{panel:'header',flow:'project-save'});try{if(collaboration?.active())await collaboration.checkpoint();else {await api('projects/'+world.id,{method:'PUT',headers:{'Content-Type':'application/json'},body});projectHome?.updateBoardName(candidate.id,candidate.name);}if(revision===rev||collaboration?.active()){dirty=false;$('saveState').textContent=collaboration?.active()?'Synced':'Saved';}analytics?.record('save_succeeded',{panel:'header',flow:'project-save',result:'success'});toast(collaboration?.active()?'Shared project revision saved.':globalThis.PrototeerStorage?'Project and artwork saved in this browser.':'Project and artwork saved to the backend.');}catch(e){analytics?.record('save_failed',{panel:'header',flow:'project-save',result:'error',context:{errorCode:'save_failed'}});if(globalThis.PrototeerStorage&&!collaboration?.active()){download(world,world.name);toast('Browser save failed. Downloaded a project file instead; use Import JSON to reopen it.');}else toast('Could not save this project.');}finally{b.disabled=false;b.textContent='Save project';}};
 $('export').onclick=()=>{const data=collaboration?.active()?(collaboration.editableWorld()??world):world;download(data,data.name);analytics?.record('project_exported',{panel:'header'});toast('Project exported, including your artwork.');};
 function unityExportWorld() {
   return collaboration?.active() ? collaboration.editableWorld() ?? world : world;
@@ -6859,11 +7643,11 @@ function applyRemoteOperation(operation){try{const next=globalThis.PrototeerProj
 function applyRemoteOperations(operations){try{const next=globalThis.PrototeerProjectOps?.applyOperations?.(world,operations);if(!next)return;applyRemoteProject(next,true);}catch{toast('Shared edits could not be applied.');}}
 async function loadProject(id){try{collaboration?.leave();adopt(await api('projects/'+id));analytics?.record('project_opened',{panel:'projects'});toast('Project loaded.');}catch(e){toast(e.message);}}
 $('projects').onclick=async()=>{modal('Your projects','','WORKSPACE / SAVED');try{const list=await api('projects'),shared=collaboration?.listKnownProjects?.()??[];$('dialogBody').innerHTML='<div class="action-row"><button id="importProject">Import JSON</button></div>'+(shared.length?'<div class="form-section">SHARED</div>'+shared.map(p=>`<div class="project-row"><div><strong>${esc(p.name)}</strong><small>${esc(p.role)} link · ${esc(new Date(p.updatedAt).toLocaleString())}</small></div><button data-open-shared="${esc(p.projectId)}">Open</button></div>`).join(''):'')+(list.length?'<div class="form-section">THIS BROWSER</div>'+list.map(p=>`<div class="project-row"><div><strong>${esc(p.name)}</strong><small>Tick ${p.tick} · ${esc(new Date(p.updated).toLocaleString())}</small></div><button data-backup="${esc(p.id)}">Backup</button><button data-load="${esc(p.id)}">Open</button></div>`).join(''):'');$('importProject').onclick=()=>$('importFile').click();const confirmOpen=action=>{if(dirty){modal('Open saved project?','<div class="dialog-actions"><button id="cancelLoad">Cancel</button><button class="primary" id="confirmLoad">Open project</button></div>');$('cancelLoad').onclick=()=>$('dialog').close();$('confirmLoad').onclick=action;}else action();};$('dialogBody').querySelectorAll('[data-load]').forEach(b=>b.onclick=()=>confirmOpen(()=>loadProject(b.dataset.load)));$('dialogBody').querySelectorAll('[data-open-shared]').forEach(b=>b.onclick=()=>confirmOpen(async()=>{try{await collaboration.openKnown(b.dataset.openShared);analytics?.record('project_opened',{panel:'projects'});}catch{toast('This shared project could not be opened.');}}));$('dialogBody').querySelectorAll('[data-backup]').forEach(b=>b.onclick=async()=>{try{const p=await api('projects/'+b.dataset.backup);download(p,p.name);}catch(e){toast(e.message);}});}catch(e){$('dialogBody').innerHTML=`<p>${esc(e.message)}</p><button id="importProject">Import JSON</button>`;$('importProject').onclick=()=>$('importFile').click();}};
-$('importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>MAX_BYTES)throw Error('Maximum project size is 12 MB.');const data=normalizeWorld(JSON.parse(await file.text()));if(!validWorld(data))throw Error('This file is not a valid sandbox project.');const apply=()=>{if(collaboration?.active())collaboration.leave();adopt(data);changed();analytics?.record('project_imported',{panel:'projects',flow:'project-import',result:'success'});toast('Imported. Save to store it on the backend.');};if(dirty){modal('Import this project?','<div class="dialog-actions"><button id="cancelImport">Cancel</button><button class="primary" id="confirmImport">Import project</button></div>');$('cancelImport').onclick=()=>$('dialog').close();$('confirmImport').onclick=apply;}else apply();}catch(err){analytics?.record('validation_error',{panel:'projects',flow:'project-import',result:'error',context:{errorCode:'validation'}});toast(err.message);}e.target.value='';};
+$('importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>MAX_BYTES)throw Error('Maximum project size is 12 MB.');const data=normalizeWorld(JSON.parse(await file.text()));if(!validWorld(data))throw Error('This file is not a valid sandbox project.');const apply=()=>{if(collaboration?.active())collaboration.leave();adopt(data);projectHome?.showStandalone();changed();analytics?.record('project_imported',{panel:'projects',flow:'project-import',result:'success'});toast('Imported. Save to store it on the backend.');};if(dirty){modal('Import this project?','<div class="dialog-actions"><button id="cancelImport">Cancel</button><button class="primary" id="confirmImport">Import project</button></div>');$('cancelImport').onclick=()=>$('dialog').close();$('confirmImport').onclick=apply;}else apply();}catch(err){analytics?.record('validation_error',{panel:'projects',flow:'project-import',result:'error',context:{errorCode:'validation'}});toast(err.message);}e.target.value='';};
 $('projectName').oninput=e=>{world.name=e.target.value.slice(0,100);changed();};$('clearEvents').onclick=()=>{world.events=[];changed();renderEvents();};$('newBlank').onclick=()=>{modal('Start with a blank canvas?','<div class="dialog-actions"><button id="cancelNew">Cancel</button><button id="confirmNew" class="primary">New blank canvas</button></div>');$('cancelNew').onclick=()=>$('dialog').close();$('confirmNew').onclick=()=>{setRunning(false);const currentId=collaboration?.active()?world.id:null,fresh=createWorld();if(currentId)fresh.id=currentId;world=fresh;guideOpen=false;zoneId=null;entityId=null;toolId=null;baseline=null;undo=[];redo=[];pan={x:0,y:0};zoom=1;imageCache.clear();librariesInitialized=false;changed();switchView('board');refresh();$('dialog').close();};};
 $('help').onclick=()=>modal('Your simulation whiteboard',`<p><b>Object types:</b> Create a reusable object. Choose a basic color or upload PNG/JPEG artwork. Defaults are monochrome. Collision, movement, tags, and appearance are independent settings. Solid, liquid, and moving-object presets only set starting flags.</p><p><b>Stats:</b> Define any named number with a minimum, maximum, and starting value. There are no built-in survival bars. Values are clamped to your range.</p><p><b>Rules:</b> On interaction, contact, or each tick, read a condition and apply an effect to Self or Other. Effects can change a stat, add/remove a tag, transfer material to a surface, move surface material inside, or remove an object. Contact rules repeat each tick.</p><p><b>Build an interaction chain:</b> Create a material object type. Give it an On contact → Other → Transfer supply onto surface rule. On another object type, add an Every tick → Self → Move surface material inside rule using that material. Then add a rule comparing internal material quantity and changing any custom stat you defined. No species-specific code is needed.</p><p><b>Utility:</b> Add decisions using your stats. Score low or high values, set a weight, then choose idle, movement, or a find → move → interact branch. The highest score wins. This version uses fixed action branches; arbitrary behavior-tree node authoring is still future work.</p><p><b>Board:</b> Draw with your object types; Select to inspect an instance. Click stacked instances repeatedly to cycle them. Ctrl+Z undoes edits. Manual interaction uses the selected object and an adjacent target. Objects share cells unless both have collision.</p><p><b>Persistence:</b> Save stores definitions, instances, rules, and uploaded artwork on the backend. Export/import JSON provides portable backups. The current 64 × 44 board supports 500 instances, 100 object types, and 50 stats; projects can be up to 12 MB. Simulation runs in the open tab. Legacy v0.1 projects remain available as backups in Projects.</p>`,'QUICK GUIDE');
 for(const id of ['newTool','createTool','emptyCreate','libraryNewTool'])$(id).onclick=()=>editTool();for(const id of ['newStat','quickStat'])$(id).onclick=()=>editStat();$('newRule').onclick=()=>chooseOwner(owner=>editRule(owner));$('closeDialog').onclick=()=>{$('dialog').close();collaboration?.setPresence({editingKind:undefined,editingId:undefined});};$('dialog').addEventListener?.('close',()=>collaboration?.setPresence({editingKind:undefined,editingId:undefined}));document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>switchView(b.dataset.view));
-window.addEventListener('keydown',e=>{if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)||$('dialog').open)return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();doUndo(e.shiftKey);return;}if(e.key==='1')switchView('board');const modes={v:'select',b:'draw',e:'erase',h:'pan'};if(modes[e.key.toLowerCase()])setMode(modes[e.key.toLowerCase()]);if(e.code==='Space'){e.preventDefault();setRunning(!running);}if(e.key==='Escape'){entityId=null;setMode('select');renderInspector();requestDraw();}});window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});new ResizeObserver(requestDraw).observe($('boardWrap'));setMode('select');refresh();
+window.addEventListener('keydown',e=>{if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)||$('dialog').open||projectHome&&!projectHome.inEditor())return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();doUndo(e.shiftKey);return;}if(e.key==='1')switchView('board');const modes={v:'select',b:'draw',e:'erase',h:'pan'};if(modes[e.key.toLowerCase()])setMode(modes[e.key.toLowerCase()]);if(e.code==='Space'){e.preventDefault();setRunning(!running);}if(e.key==='Escape'){entityId=null;setMode('select');renderInspector();requestDraw();}});window.addEventListener('beforeunload',e=>{if(dirty&&(!projectHome||projectHome.inEditor())&&(!collaboration?.active()||collaboration.hasPendingEdits())){e.preventDefault();e.returnValue='';}});new ResizeObserver(requestDraw).observe($('boardWrap'));setMode('select');refresh();
 function ownedStats(t){return world.stats.filter(s=>t?.statIds?.includes(s.id));}
 function tagDef(id){return world.tagDefs.find(tag=>tag.id===id);}
 function tagUsages(id){const uses=[];for(const t of world.tools){if(t.tags.includes(id))uses.push(t.name+' / assigned to new instances');for(const r of t.rules){if([r.selfTag,r.otherTag,r.conditionTag].includes(id))uses.push(t.name+' / rule condition: '+r.name);if(r.tag===id)uses.push(t.name+' / rule effect: '+r.name);}for(const n of t.brain)if(n.tag===id)uses.push(t.name+' / tree condition: '+n.label);}return uses;}
@@ -6924,7 +7708,7 @@ function goGuide(index){setRunning(false);guideOpen=true;guideStep=Math.max(0,Ma
 function loadHouseDemo(){modal('Open a fresh pursuit demo?','<div class="dialog-actions"><button id="cancelHouse">Cancel</button><button class="primary" id="confirmHouse">Open pursuit demo</button></div>');$('cancelHouse').onclick=()=>$('dialog').close();$('confirmHouse').onclick=()=>{setRunning(false);const currentId=collaboration?.active()?world.id:null,fresh=createDemoWorld();if(currentId)fresh.id=currentId;world=fresh;toolId=world.tutorial.toolId;entityId=world.tutorial.botId;zoneId=(world.tutorial.primaryZone??world.tutorial.chargingZone);guideOpen=true;guideStep=0;baseline=null;undo=[];redo=[];zoom=1.45;pan={x:0,y:0};imageCache.clear();librariesInitialized=false;changed();$('dialog').close();switchView('board');setMode('select');refresh();};}
 $('newZone').onclick=$('quickNewZone').onclick=()=>editZone();$('tutorialReplay').onclick=()=>{guideOpen=true;goGuide(0);};$('reloadHouse').onclick=loadHouseDemo;
 
-const zoneBaseHelp=$('help').onclick;$('help').onclick=()=>{zoneBaseHelp();$('dialogBody').insertAdjacentHTML('afterbegin','<p><b>Pursuit introduction:</b> An editable subject, director and pursuer open on every page load. Inspect the graphs to configure patrol destinations, pauses, varied routes, message commitment and local search. Debug view shows the chosen point and actual route. Guide replays the explanation; Pursuit demo creates a fresh teaching copy after confirming replacement. Saved projects remain in Projects.</p><p><b>Zones:</b> Use Zone to paint the selected area and Unzone to erase only that zone. Zones never create collision. Configure entry/tick effects, selected stats or tags, required tags, and optional stat conditions in Zones. In AI nodes, use zone conditions, Go to zone actions, or a zone score multiplier. Scores still work alongside tree conditions. Effects never attach missing stats.</p>');};
+const zoneBaseHelp=$('help').onclick;$('help').onclick=()=>{zoneBaseHelp();$('dialogBody').insertAdjacentHTML('afterbegin','<p><b>Pursuit introduction:</b> Open Pursuit demo for an editable subject, director and pursuer. Inspect the graphs to configure patrol destinations, pauses, varied routes, message commitment and local search. Debug view shows the chosen point and actual route. Guide replays the explanation; Pursuit demo creates a fresh teaching copy after confirming replacement. Saved projects remain in Projects.</p><p><b>Zones:</b> Use Zone to paint the selected area and Unzone to erase only that zone. Zones never create collision. Configure entry/tick effects, selected stats or tags, required tags, and optional stat conditions in Zones. In AI nodes, use zone conditions, Go to zone actions, or a zone score multiplier. Scores still work alongside tree conditions. Effects never attach missing stats.</p>');};
 function renderDirectors(){$('directorCount').textContent=world.directors.length;$('directorCards').innerHTML=world.directors.length?world.directors.map(d=>`<article class="director-card"><div class="creature-card-title"><h3>${esc(d.name)}</h3><span class="tag">${d.enabled?'Enabled':'Disabled'}</span></div><p>${esc(d.description)||'Central observation and communication, without built-in pacing.'}</p><div class="zone-meta"><span>Observe: ${esc(world.tools.find(t=>t.id===d.watchTool)?.name??'all object types')}${d.watchTag?' / '+esc(tagDef(d.watchTag)?.name):''}${d.watchEntity?' / one selected instance':''}</span><span>Recipients: ${d.recipients.length} creature(s)</span><span>${d.rules.length} rules</span></div><div class="action-row"><button data-director-edit="${d.id}">Observation & receivers</button><button data-director-rule="${d.id}">＋ Event → message rule</button><button data-director-connect="${d.id}">Message routing</button></div>${d.rules.map(r=>`<div class="mini-row"><span>${esc(r.name)}<small>${r.enabled?'On':'Off'} · ${esc(r.trigger)} → ${esc(r.message)} · ${esc(messageFieldsForRule(r).map(f=>f.name+': '+f.type).join(', '))} · ${r.ttl} ticks</small></span><button data-rule-owner="${d.id}" data-director-rule-edit="${r.id}">Edit</button></div>`).join('')}<div class="director-live" id="directorLive-${d.id}"></div></article>`).join(''):empty('Empty');for(const [key,handler]of [['edit',id=>editDirector(id)],['rule',id=>editDirectorRule(id)],['connect',id=>editDirectorReceiver(id)]])$('directorCards').querySelectorAll('[data-director-'+key+']').forEach(b=>b.onclick=()=>handler(b.dataset['director'+key[0].toUpperCase()+key.slice(1)]));$('directorCards').querySelectorAll('[data-director-rule-edit]').forEach(b=>b.onclick=()=>editDirectorRule(b.dataset.ruleOwner,b.dataset.directorRuleEdit));updateDirectorLive();}
 function updateDirectorLive(){for(const d of world.directors){const live=$('directorLive-'+d.id);if(!live)continue;live.innerHTML=`<details><summary>Observations (${d.observations.length}) and delivery trace</summary>${d.observations.map(o=>`<div class="director-observation"><strong>${esc(world.tools.find(t=>t.id===o.toolId)?.name??'Object')} (${o.x}, ${o.y})</strong><span>${Object.entries(o.stats).map(([key,value])=>`${esc(world.stats.find(s=>s.id===key)?.name??key)} ${Number(value.toFixed(2))}`).join(' · ')||'No stats'}</span><span>${o.zones.map(id=>esc(world.zones.find(z=>z.id===id)?.name??'')).join(', ')||'Outside zones'}</span></div>`).join('')||''}<div class="trace">${d.log.slice(-12).reverse().map(l=>`T${l.tick} · ${esc(l.text)}`).join('<br>')||'No messages delivered yet.'}</div></details>`;}}
 function editDirector(id){setRunning(false);const old=world.directors.find(d=>d.id===id),d=structuredClone(old??makeDirector());modal(old?'Edit director':'Create director',`<div class="form-grid"><label class="field">Name<input id="directorName" maxlength="60" value="${esc(d.name)}"></label><label class="field">Observed object type<select id="directorWatchTool">${selectOptions(world.tools,d.watchTool,'All object types')}</select></label><label class="field">Observed tag (optional)<select id="directorWatchTag">${selectOptions(world.tagDefs,d.watchTag,'Any tag')}</select></label><label class="field">Exact observed instance (optional)<select id="directorWatchEntity">${selectOptions(world.entities.map(e=>({id:e.id,name:`${toolOf(e)?.name??'Object'} (${e.x}, ${e.y})`})),d.watchEntity,'All matching instances')}</select></label><label class="field wide">Purpose<textarea id="directorPurpose" rows="3" maxlength="1000">${esc(d.description)}</textarea></label><div class="field wide">Message receivers<div class="assignment-list">${world.tools.filter(t=>t.kind==='creature').map(t=>`<label><span><input type="checkbox" data-director-recipient="${t.id}" ${d.recipients.includes(t.id)?'checked':''}> ${esc(t.name)}</span></label>`).join('')||''}</div></div></div><div class="checks"><label><input type="checkbox" id="directorEnabled" ${d.enabled?'checked':''}> Director enabled</label></div><div id="formError" class="form-error"></div><div class="dialog-actions">${old?'<button id="deleteDirector" class="danger">Delete director</button>':''}<button id="cancelDirector">Cancel</button><button class="primary" id="saveDirector">Save director</button></div>`);$('cancelDirector').onclick=()=>$('dialog').close();$('saveDirector').onclick=()=>{const name=$('directorName').value.trim();if(!name)return error('Name the director.');if(!old&&world.directors.length>=10)return error('Prototype limit: 10 directors.');const watchTool=$('directorWatchTool').value,watchTag=$('directorWatchTag').value,watchEntity=$('directorWatchEntity').value;const filterChanged=d.watchTool!==watchTool||d.watchTag!==watchTag||d.watchEntity!==watchEntity;Object.assign(d,{name,description:$('directorPurpose').value.trim(),watchTool,watchTag,watchEntity,enabled:$('directorEnabled').checked,recipients:[...$('dialogBody').querySelectorAll('[data-director-recipient]:checked')].map(input=>input.dataset.directorRecipient)});if(filterChanged){d.memory={};d.observations=[];for(const rule of d.rules)rule.state={};}checkpoint();if(old)world.directors[world.directors.findIndex(x=>x.id===id)]=d;else world.directors.push(d);changed();refresh();$('dialog').close();toast('Director saved. Add a rule and connect its message receiver.');};if(old)$('deleteDirector').onclick=()=>{checkpoint();world.directors=world.directors.filter(d=>d.id!==id);for(const e of world.entities)if((world.messageRoutes??[]).some(r=>r.directorId===id&&r.messageId===e.acceptedMessage?.message.id))delete e.acceptedMessage;for(const e of world.entities)e.inbox=(e.inbox??[]).filter(m=>!(world.messageRoutes??[]).some(r=>r.directorId===id&&r.messageId===m.id));changed();refresh();$('dialog').close();};}
@@ -6961,7 +7745,7 @@ function treeVisible(){return view==='behavior'||isSplitWorkspace();}
 function updateWorkspace(){const active=isSplitWorkspace();$('editorLayout').classList.toggle('split-active',active);$('editorLayout').classList.toggle('inspector-open',active&&splitInspector);$('simulationWorkspace').classList.toggle('split-mode',active);$('simulationWorkspace').classList.toggle('hidden',!['board','behavior'].includes(view));for(const k of ['board','tools','stats','rules','tags','behavior','history','creatures','zones','directors'])$(k+'View').classList.toggle('hidden',!(k===view||active&&['board','behavior'].includes(k)));$('toggleSplit').ariaPressed=String(splitEnabled);$('toggleInspector').classList.toggle('hidden',!active);$('toggleInspector').ariaPressed=String(splitInspector);$('toggleInspector').textContent=splitInspector?'Hide inspector':'Show inspector';}
 $('toggleSplit').onclick=()=>{splitEnabled=!splitEnabled;switchView(['board','behavior'].includes(view)?view:'board');requestDraw();};$('toggleInspector').onclick=()=>{splitInspector=!splitInspector;updateWorkspace();requestDraw();};
 
-const ANALYTICS_CONSENT_KEY='prototeer.analytics-consent.v1',ANALYTICS_PARTICIPANT_KEY='prototeer.analytics-participant.v1',ANALYTICS_UI_VERSION='dev-2026-11-2';
+const ANALYTICS_CONSENT_KEY='prototeer.analytics-consent.v1',ANALYTICS_PARTICIPANT_KEY='prototeer.analytics-participant.v1',ANALYTICS_UI_VERSION='dev-2026-11-23';
 const analyticsSessionId=('session_'+(crypto.randomUUID?.()??`${Date.now()}_${Math.random().toString(36).slice(2)}`)).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,100);
 const analyticsPanel=()=>({tools:'object-types',zones:'zones',creatures:'creatures',stats:'stats',rules:'interaction-rules',tags:'tags',behavior:'behavior-tree',directors:'directors',history:'history',board:'board'}[view]??'unknown');
 const allowedAnalyticsControls=()=>[...document.querySelectorAll('[id]')].map(element=>element.id).filter(id=>/^[A-Za-z][A-Za-z0-9_-]{0,79}$/.test(id));
@@ -6969,7 +7753,7 @@ function analyticsTransport(){return collaboration?.analyticsTransport?.()??null
 function setUsageConsent(value){analyticsConsent=value===true;try{localStorage.setItem(ANALYTICS_CONSENT_KEY,analyticsConsent?'yes':'no');}catch{}analytics?.setConsent(analyticsConsent);$('usageConsent').hidden=true;}
 function setupAnalytics(){if(analytics||!globalThis.PrototeerAnalytics)return;const transport=analyticsTransport();if(!transport){$('usageConsent').hidden=true;return;}let choice='';try{choice=localStorage.getItem(ANALYTICS_CONSENT_KEY)??'';}catch{}analyticsConsent=choice==='yes';let participant='';try{participant=localStorage.getItem(ANALYTICS_PARTICIPANT_KEY)??'';}catch{}if(!/^[A-Za-z0-9_-]{12,100}$/.test(participant)){participant=('participant_'+(crypto.randomUUID?.()??`${Date.now()}_${Math.random().toString(36).slice(2)}`)).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,100);try{localStorage.setItem(ANALYTICS_PARTICIPANT_KEY,participant);}catch{}}analytics=globalThis.PrototeerAnalytics.createAnalytics({sessionId:analyticsSessionId,participantId:participant,uiVersion:ANALYTICS_UI_VERSION,consent:analyticsConsent,allowedControls:allowedAnalyticsControls(),transport});$('usageConsent').hidden=choice==='yes'||choice==='no';}
 $('allowUsage').onclick=()=>setUsageConsent(true);$('declineUsage').onclick=()=>setUsageConsent(false);
-function analyticsRegion(target){const region=target?.closest?.('[data-analytics-region]'),name=region?.dataset.analyticsRegion;const surface=name==='board'?'board':'ui';const panel=name==='header'?'header':name==='inspector'?'inspector':name==='dialog'?$('dialogTitle').textContent==='Your projects'?'projects':$('dialogTitle').textContent==='Share project'?'share':'dialog':analyticsPanel();return {region,surface,panel};}
+function analyticsRegion(target){const region=target?.closest?.('[data-analytics-region]'),name=region?.dataset.analyticsRegion;const surface=name==='board'?'board':'ui';const panel=name==='projects'?'projects':name==='header'?'header':name==='inspector'?'inspector':name==='dialog'?$('dialogTitle').textContent==='Your projects'?'projects':$('dialogTitle').textContent==='Share project'?'share':'dialog':analyticsPanel();return {region,surface,panel};}
 function analyticsControlId(target){const element=target?.closest?.('button,a,[role="button"]');if(!element)return '';if(element.id)return element.id;const key=Object.keys(element.dataset??{}).sort()[0];return key?`action_${key.replace(/([A-Z])/g,'_$1').toLowerCase()}`:`action_${element.tagName?.toLowerCase()==='a'?'link':'button'}`;}
 let lastPointerAnalytics=0,lastScrollAnalytics=0;
 document.addEventListener?.('click',event=>{if(!analytics?.hasConsent())return;const {region,surface,panel}=analyticsRegion(event.target),control=analyticsControlId(event.target),rect=region?.getBoundingClientRect?.();if(control&&analytics.allowControl(control))analytics.record('control_clicked',{surface,panel,controlId:control});if(rect?.width&&rect?.height)analytics.sampleHeatmap('click',{surface,panel,x:event.clientX-rect.left,y:event.clientY-rect.top,width:rect.width,height:rect.height,pointerType:event.pointerType??'mouse'});},true);
@@ -6980,14 +7764,93 @@ document.addEventListener?.('change',event=>{const control=event.target?.id;if(!
 function setSyncState(state,role='local'){const el=$('syncState');el.dataset.state=state==='local'?'local':state;el.textContent=state==='local'?'Local':state==='syncing'?'Syncing…':state==='offline'?'Offline':state==='conflict'?'Conflict':role==='owner'?'Owner · synced':role==='editor'?'Editor · synced':'View only';const viewer=collaboration?.active()&&!collaboration.canEdit();$('projectName').readOnly=viewer;$('save').disabled=viewer;$('play').disabled=viewer;$('step').disabled=viewer;$('reset').disabled=viewer;const shared=collaboration?.active();$('undo').disabled=shared;$('redo').disabled=shared;}
 function renderPresence(entries=[]){$('presence').innerHTML=entries.slice(0,5).map(person=>`<span class="presence-avatar" style="background:${esc(person.color)}" title="${esc(person.displayName)} · ${esc(person.role)}">${esc(person.initials)}</span>`).join('')+(entries.length>5?`<span class="presence-more">+${entries.length-5}</span>`:'');$('remotePointers').innerHTML=entries.filter(person=>!person.self&&person.view==='board'&&Number.isFinite(person.pointerX)&&Number.isFinite(person.pointerY)).map(person=>`<span class="remote-pointer" style="left:${100*person.pointerX}%;top:${100*person.pointerY}%;color:${esc(person.color)}"><span>${esc(person.displayName)}</span></span>`).join('');}
 function applyRuntimeFrame(data){data=normalizeWorld(data);if(!validWorld(data))return;applyingRemote=true;world=data;applyingRemote=false;revision++;runtimeRevision++;renderRuntime();}
-function initializeCollaboration(){if(!globalThis.PrototeerCollaboration)return;collaboration=globalThis.PrototeerCollaboration.create({hooks:{onBootstrap:(data,meta)=>applyRemoteProject(data,meta.preserveUi),onRemoteOperation:operation=>applyRemoteOperation(operation),onRemoteOperations:operations=>applyRemoteOperations(operations),onPresence:renderPresence,onStatus:status=>{setSyncState(status.state,status.role);if(status.active&&status.state==='synced')$('saveState').textContent='Synced';},onConflict:()=>toast('A collaborator changed the same item. The latest shared version was loaded.'),onError:()=>toast('Shared edits are waiting for the connection.'),onSimulation:state=>setRunning(state.status==='running',true,state.controller),onRuntimeFrame:applyRuntimeFrame}});setSyncState('local');setupAnalytics();void collaboration.joinFromLocation().then(result=>{if(result?.desktopRequired)return;}).catch(()=>{setSyncState('offline');toast(collaboration.available()?'This shared project could not be opened.':'Online collaboration needs a deployed Convex backend.');});}
+function initializeCollaboration(){if(!globalThis.PrototeerCollaboration)return;collaboration=globalThis.PrototeerCollaboration.create({hooks:{onBootstrap:(data,meta)=>applyRemoteProject(data,meta.preserveUi),onRemoteOperation:operation=>applyRemoteOperation(operation),onRemoteOperations:operations=>applyRemoteOperations(operations),onPresence:renderPresence,onStatus:status=>{setSyncState(status.state,status.role);if(status.active&&status.state==='synced')$('saveState').textContent='Synced';},onConflict:()=>toast('A collaborator changed the same item. The latest shared version was loaded.'),onError:()=>toast('Shared edits are waiting for the connection.'),onSimulation:state=>setRunning(state.status==='running',true,state.controller),onRuntimeFrame:applyRuntimeFrame}});setSyncState('local');setupAnalytics();if(startsInLobby)return;void collaboration.joinFromLocation().then(result=>{if(result?.desktopRequired)return;}).catch(()=>{setSyncState('offline');toast(collaboration.available()?'This shared project could not be opened.':'Online collaboration needs a deployed Convex backend.');});}
 
-async function copyText(value){try{await navigator.clipboard.writeText(value);toast('Link copied.');}catch{const input=document.createElement('textarea');input.value=value;document.body.append(input);input.select();document.execCommand('copy');input.remove();toast('Link copied.');}}
+async function copyText(value){
+  try{await navigator.clipboard.writeText(value);toast('Link copied.');}
+  catch{
+    const input=document.createElement('textarea');
+    input.value=value;
+    (document.querySelector('dialog[open]')??document.body).append(input);
+    input.select();
+    const copied=document.execCommand('copy');
+    input.remove();
+    toast(copied?'Link copied.':'Select the link to copy it manually.');
+  }
+}
 function shareDialog(){const info=collaboration?.shareInfo?.()??{active:false,available:false,desktop:true};if(!info.desktop)return modal('Share project','<p>Realtime shared editing is available on desktop only.</p>','ONLINE');if(!info.available){modal('Share project','<p>The online backend is not connected in this development build.</p><label class="field">Convex deployment URL<input id="onlineBackendUrl" placeholder="https://your-deployment.convex.cloud"></label><div id="formError" class="form-error"></div><div class="dialog-actions"><button id="connectBackend" class="primary">Connect backend</button></div>','ONLINE');$('connectBackend').onclick=async()=>{try{await collaboration.configure($('onlineBackendUrl').value);setupAnalytics();shareDialog();}catch{return error('Enter a valid Convex deployment URL.');}};return;}if(!info.active){modal('Share project','<p>Create an anonymous shared copy of this project. You keep the owner recovery key; editor and viewer links do not require accounts.</p><div class="dialog-actions"><button id="createShared" class="primary">Create shared project</button></div>','ONLINE');$('createShared').onclick=async()=>{if(!validWorld(world))return error('Finish invalid definitions before sharing.');$('createShared').disabled=true;try{await collaboration.createOnline(world);shareDialog();toast('Shared project created. Download the recovery key.');}catch{$('createShared').disabled=false;error('The shared project could not be created.');}};return;}const linkRow=(label,value,roleName)=>value?`<label class="field">${label}<span class="share-grid"><input readonly value="${esc(value)}"><button data-copy-link="${esc(roleName)}">Copy</button></span></label>`:'';modal('Share project',`<div class="access-row"><div><strong>${esc(info.role.toUpperCase())}</strong><small>Project ${esc(info.projectId)}</small></div></div>${linkRow('Your owner link',info.ownerUrl,'owner')}${linkRow('Can edit',info.editorUrl,'editor')}${linkRow('View only',info.viewerUrl,'viewer')}<div class="inline-actions">${info.role==='owner'&&!info.editorUrl?'<button id="newEditorLink">Create editor link</button>':''}${info.role==='owner'&&!info.viewerUrl?'<button id="newViewerLink">Create viewer link</button>':''}${info.role==='owner'?'<button id="downloadRecovery">Download recovery key</button>':''}</div>`,'ONLINE / SHARING');$('dialogBody').querySelectorAll('[data-copy-link]').forEach(button=>button.onclick=()=>copyText({owner:info.ownerUrl,editor:info.editorUrl,viewer:info.viewerUrl}[button.dataset.copyLink]));if($('newEditorLink'))$('newEditorLink').onclick=async()=>{await collaboration.createAccess('editor','Editor link');shareDialog();};if($('newViewerLink'))$('newViewerLink').onclick=async()=>{await collaboration.createAccess('viewer','Viewer link');shareDialog();};if($('downloadRecovery'))$('downloadRecovery').onclick=()=>{const recovery=collaboration.recoveryData();download(recovery,(recovery.projectName||'prototeer')+'-recovery-key');};}
 async function renderAccessLinks(){if(!collaboration?.isOwner()||$('dialogTitle').textContent!=='Share project')return;let host=$('accessLinks');if(!host){host=document.createElement('div');host.id='accessLinks';$('dialogBody').append(host);}try{const [grants,revisions]=await Promise.all([collaboration.listCapabilities(),collaboration.listRevisions()]);host.innerHTML='<div class="form-section">ACCESS LINKS</div>'+grants.map(grant=>`<div class="access-row"><div><strong>${esc(grant.label)}</strong><small>${esc(grant.role)} · ${grant.revokedAt?'revoked':'active'}</small></div>${grant.role!=='owner'&&!grant.revokedAt?`<button data-revoke-link="${esc(grant.id)}" data-revoke-role="${esc(grant.role)}">Revoke</button>`:''}</div>`).join('')+'<div class="form-section">SAVED REVISIONS</div>'+revisions.map(item=>`<div class="access-row"><div><strong>Revision ${item.revision}</strong><small>${esc(item.reason)} · ${esc(new Date(item.createdAt).toLocaleString())}</small></div><button data-restore-revision="${esc(item.id)}">Restore</button></div>`).join('');host.querySelectorAll('[data-revoke-link]').forEach(button=>button.onclick=async()=>{button.disabled=true;try{await collaboration.revokeCapability(button.dataset.revokeLink,button.dataset.revokeRole);shareDialog();void renderAccessLinks();toast('Access link revoked.');}catch{button.disabled=false;toast('The link could not be revoked.');}});host.querySelectorAll('[data-restore-revision]').forEach(button=>button.onclick=async()=>{button.disabled=true;try{await collaboration.restoreRevision(button.dataset.restoreRevision);toast('Saved revision restored.');$('dialog').close();}catch{button.disabled=false;toast('The revision could not be restored.');}});}catch{host.innerHTML='';}}
-$('share').onclick=()=>{shareDialog();void renderAccessLinks();};
+$('share').onclick=()=>{
+  if(projectHome?.isSharedBoard()&&collaboration.isOwner()){
+    modal('Share project','<button id="inviteFromBoard">Invite to project</button>','ONLINE / SHARING');
+    $('inviteFromBoard').onclick=()=>{$('dialog').close();projectHome.openInvite();};
+    void renderAccessLinks();
+    return;
+  }
+  if(projectHome?.openInvite())return;
+  shareDialog();void renderAccessLinks();
+};
 
 initializeCollaboration();
+if(startsInLobby){
+  const openBoard=data=>{adopt(data);setMode('select');switchView('board');requestDraw();};
+  projectHome=globalThis.PrototeerProjectHome.start({
+    api,collaboration,
+    createBoard(name){return Object.assign(createWorld(),{name});},
+    openLocal:openBoard,
+    async openShared(boardId,token){
+      try{await collaboration.bootstrap(boardId,token,{managed:true});switchView('board');setMode('select');requestDraw();}
+      catch(error){collaboration.leave({preserveLocation:true});throw error;}
+    },
+    async openLegacy(id){
+      if(!collaboration)throw Error('online_backend_not_configured');
+      const result=id?await collaboration.openKnown(id):await collaboration.joinFromLocation();
+      if(result?.desktopRequired)throw Error('desktop_required');
+      setMode('select');switchView('board');requestDraw();
+    },
+    async exitEditor(preserveLocation){
+      if(collaboration?.active()){
+        if(collaboration.canEdit()){
+          await collaboration.flush();
+          if(collaboration.hasPendingEdits())throw Error('Wait for your shared edits to sync before leaving this board.');
+          if(sharedController)await collaboration.pauseSimulation();
+        }
+        collaboration.leave({preserveLocation});
+        applyRunningState(false);
+        dirty=false;
+        return null;
+      }
+      applyRunningState(false);
+      const current=world,currentRevision=revision;
+      if(dirty){
+        if(!validWorld(current))throw Error('Finish incomplete definitions before leaving this board.');
+        await api('projects/'+current.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(current)});
+        if(revision!==currentRevision)throw Error('The board changed during the save. Try again.');
+        dirty=false;
+        $('saveState').textContent='Saved';
+      }
+      return {id:current.id,name:current.name};
+    },
+    async connect(url){
+      const value=String(url??'').trim().replace(/\/$/,'');
+      if(!/^https:\/\/[a-z0-9-]+\.convex\.cloud$/i.test(value))throw Error('invalid_convex_url');
+      await collaboration.configure(value);
+      setupAnalytics();
+    },
+    chooseImport:()=>$('importFile').click(),
+    openDemo(){
+      const demo=createDemoWorld();
+      openBoard(demo);
+      toolId=demo.tutorial.toolId;entityId=demo.tutorial.botId;zoneId=demo.tutorial.primaryZone;
+      guideOpen=true;guideStep=0;zoom=1.45;refresh();
+    },
+    copy:copyText,download,toast,
+    record:(kind,details)=>analytics?.record(kind,details),
+  });
+  $('newBlank').onclick=projectHome.newProject;
+  $('projects').onclick=projectHome.lobby;
+  $('reloadHouse').onclick=projectHome.launchDemo;
+}
 const helpWithUsageSettings=$('help').onclick;$('help').onclick=()=>{helpWithUsageSettings();if(!analyticsTransport())return;$('dialogBody').insertAdjacentHTML('beforeend',`<div class="form-section">PRIVACY</div><div class="access-row"><div><strong>Anonymous usage data</strong><small>${analyticsConsent?'Allowed':'Off'} · never includes project content or artwork</small></div><button id="changeUsageConsent">Change</button></div>`);$('changeUsageConsent').onclick=()=>{$('dialog').close();$('usageConsent').hidden=false;};};
 globalThis.addEventListener?.('pagehide',()=>{void analytics?.destroy?.();},{once:true});
 

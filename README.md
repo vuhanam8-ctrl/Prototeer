@@ -6,7 +6,9 @@ A monochrome simulation editor with custom brushes, creatures, artwork, explicit
 
 Open docs/dev/index.html directly in a modern browser, or extract Prototeer.zip and open index.html. The HTML includes its CSS and JavaScript. No installation, server, account, internet connection, module loader or external fonts are needed.
 
-Save project uses IndexedDB in the current browser. Export downloads the full project and artwork as JSON. Projects → Import JSON loads a project file. Browser storage can be blocked, cleared, or scoped differently for file URLs; keep JSON exports. If a browser save fails, Save downloads a project file instead. Existing project files from the previous hosted version remain compatible. Previously saved server projects need to be exported from that site and imported here.
+**New Project** in the lobby opens a form for the project name. The project starts with **Board 1**. Open it to enter the workspace, or use **Add Board** on the project page to create another board. The pursuit demo and JSON import are available from the lobby.
+
+Save project uses IndexedDB in the current browser. Each board keeps its own editable data and artwork. **Export** downloads that board as JSON. **Import JSON** opens it again. Browser storage can be blocked, cleared, or scoped differently for file URLs; keep JSON exports. If a browser save fails, Save downloads a project file instead. Existing saved boards and project files remain compatible.
 
 ## Export to Unity
 
@@ -28,7 +30,7 @@ The portable build keeps the full editor and simulation. With no Convex deployme
 
 ## Anonymous online projects
 
-The development source includes an optional Convex backend for desktop collaboration. Testers do not create accounts. An owner creates a shared project and receives an owner recovery download plus separate editor and viewer links. Access secrets stay in the URL fragment and only their SHA-256 digests are stored by Convex.
+The development source includes an optional Convex backend for desktop collaboration. Testers do not create accounts. **Invite** on a project page copies the project's boards to the connected deployment and creates a link to the board list. Links default to **Can view**. The owner can explicitly choose **Can edit**, revoke links and download the owner recovery key. Each link applies to current and newly added boards in that project. Existing single-board links keep working. Access secrets stay in the URL fragment and only their SHA-256 digests are stored by Convex.
 
 Shared projects synchronize incremental board, definition, zone and graph edits; presence and remote board pointers are awareness only, so another person cannot move your camera, selection or open panels. Resource versions reject same-item stale edits instead of silently overwriting them. Full project checkpoints provide revisions. Uploaded artwork is preserved in snapshots and mirrored through Convex File Storage for live artwork changes.
 

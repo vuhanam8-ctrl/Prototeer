@@ -3,7 +3,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 
 export type AccessRole = "owner" | "editor" | "viewer";
-export type Access = { project: Doc<"projects">; capability: Doc<"projectCapabilities"> };
+export type Access = { project: Doc<"projects">; capability: { role: AccessRole } };
 
 const textEncoder = new TextEncoder();
 
@@ -34,14 +34,38 @@ export async function requireAccess(
     .unique();
   if (!project) throw new ConvexError({ code: "project_not_found" });
   const tokenDigest = await digestToken(token);
-  const capability = await ctx.db
-    .query("projectCapabilities")
-    .withIndex("by_token_digest", (q) => q.eq("tokenDigest", tokenDigest))
-    .unique();
-  if (!capability || capability.projectId !== project._id || capability.revokedAt !== undefined) {
+  if (project.workspaceId) {
+    const capability = await findWorkspaceCapability(ctx, tokenDigest);
+    if (capability?.workspaceId === project.workspaceId && capability.revokedAt === undefined) {
+      return { project, capability };
+    }
     throw new ConvexError({ code: "access_denied" });
   }
-  return { project, capability };
+  const capability = await ctx.db
+    .query("projectCapabilities")
+    .withIndex("by_project_token", (q) => q.eq("projectId", project._id).eq("tokenDigest", tokenDigest))
+    .unique();
+  if (capability && capability.revokedAt === undefined) {
+    return { project, capability };
+  }
+  throw new ConvexError({ code: "access_denied" });
+}
+
+export function findWorkspaceCapability(ctx: QueryCtx | MutationCtx, tokenDigest: string) {
+  return ctx.db
+    .query("workspaceCapabilities")
+    .withIndex("by_token_digest", (q) => q.eq("tokenDigest", tokenDigest))
+    .unique();
+}
+
+export async function requireUnusedTokenDigest(ctx: MutationCtx, tokenDigest: string) {
+  const [boardCapability, workspaceCapability] = await Promise.all([
+    ctx.db.query("projectCapabilities")
+      .withIndex("by_token_digest", (q) => q.eq("tokenDigest", tokenDigest))
+      .first(),
+    findWorkspaceCapability(ctx, tokenDigest),
+  ]);
+  if (boardCapability || workspaceCapability) throw new ConvexError({ code: "access_key_unavailable" });
 }
 
 export function requireEditor(role: AccessRole) {

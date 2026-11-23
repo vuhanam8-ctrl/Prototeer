@@ -1,8 +1,32 @@
 import assert from 'node:assert/strict';
 import {bootEditor} from './editor-smoke.mjs';
 // This harness reads the recipe, but writes the project only through real editor controls.
-export function rebuildThroughEditor(recipe){const {editor,get,query}=bootEditor(),ids=new Map([['root','root']]);const mapped=id=>{if(!id||id==='@self')return id??'';assert.ok(ids.has(id),'unmapped reference '+id);return ids.get(id);};const nav=view=>{const b=query('[data-view="'+view+'"]')[0];assert.ok(b);b.click();};const value=(id,v)=>{assert.ok(get(id),'missing field '+id);get(id).value=String(v??'');assert.equal(get(id).value,String(v??''),'editor cannot express '+id+' = '+v);};const checked=(id,v)=>{assert.ok(get(id));get(id).checked=!!v;};const click=id=>{assert.ok(get(id),'missing control '+id);get(id).click();const error=get('formError')?.textContent;assert.ok(!error,id+': '+error);};const choose=(container,attr,id)=>{const b=get(container).querySelector('['+attr+'="'+id+'"]');assert.ok(b,'missing '+attr+' '+id);b.click();};const checks=(attr,values)=>{const set=new Set(values);for(const el of get('dialogBody').querySelectorAll('['+attr+']')){const key=attr.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase());el.checked=set.has(el.dataset[key]);}};
-click('newBlank');click('confirmNew');assert.equal(editor.world().tools.length,0);value('projectName',recipe.name);get('projectName').oninput({target:get('projectName')});
+export async function rebuildThroughEditor(recipe){
+const saved=new Map();
+const PrototeerStorage={async request(path,options){
+  if(path==='projects')return [...saved.values()];
+  const id=path.slice('projects/'.length);
+  if(options?.method==='PUT'){
+    saved.set(id,JSON.parse(options.body));
+    return {saved:true,id};
+  }
+  return structuredClone(saved.get(id));
+}};
+const {editor,get,query}=bootEditor({loadProjectHome:true,globals:{PrototeerStorage}});
+const ids=new Map([['root','root']]);const mapped=id=>{if(!id||id==='@self')return id??'';assert.ok(ids.has(id),'unmapped reference '+id);return ids.get(id);};const nav=view=>{const b=query('[data-view="'+view+'"]')[0];assert.ok(b);b.click();};const value=(id,v)=>{assert.ok(get(id),'missing field '+id);get(id).value=String(v??'');assert.equal(get(id).value,String(v??''),'editor cannot express '+id+' = '+v);};const checked=(id,v)=>{assert.ok(get(id));get(id).checked=!!v;};const click=id=>{assert.ok(get(id),'missing control '+id);get(id).click();const error=get('formError')?.textContent;assert.ok(!error,id+': '+error);};const choose=(container,attr,id)=>{const b=get(container).querySelector('['+attr+'="'+id+'"]');assert.ok(b,'missing '+attr+' '+id);b.click();};const checks=(attr,values)=>{const set=new Set(values);for(const el of get('dialogBody').querySelectorAll('['+attr+']')){const key=attr.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase());el.checked=set.has(el.dataset[key]);}};
+await new Promise(setImmediate);
+click('lobbyNewProject');
+value('projectNameInput',recipe.name);
+get('projectNameForm').onsubmit({preventDefault(){}});
+await new Promise(setImmediate);
+assert.equal(get('projectNameStatus').textContent,'');
+const boardButton=get('projectBoardList').children[0]?.children[0];
+assert.equal(boardButton?.textContent,'Board 1');
+await boardButton.onclick();
+assert.equal(get('editorShell').hidden,false);
+assert.equal(editor.world().tools.length,0);
+value('projectName',recipe.name);
+get('projectName').oninput({target:get('projectName')});
 for(const stat of recipe.stats){nav('stats');click('newStat');for(const [key,id]of Object.entries({name:'statName',min:'statMin',max:'statMax',start:'statStart'}))value(id,stat[key]);click('saveStat');ids.set(stat.id,editor.world().stats.at(-1).id);}
 for(const tag of recipe.tagDefs){nav('tags');click('newTag');value('tagName',tag.name);value('tagPurpose',tag.description);click('saveTag');ids.set(tag.id,editor.world().tagDefs.at(-1).id);}
 for(const tool of recipe.tools){click(tool.kind==='creature'?'createCreature':'createTool');for(const [key,id]of Object.entries({name:'toolName',preset:'toolPreset',color:'toolColor',fit:'toolFit',quantity:'toolQuantity'}))value(id,tool[key]);checked('toolPixel',tool.pixelated);checked('toolCollision',tool.collision);checked('toolMobile',tool.mobile);checks('data-tool-tag',tool.tags.map(mapped));checks('data-owned-stat',tool.statIds.map(mapped));for(const statId of tool.statIds){const field=get('dialogBody').querySelector('[data-default-stat="'+mapped(statId)+'"]');field.value=String(tool.defaults[statId]??recipe.stats.find(s=>s.id===statId).start);}click('saveTool');ids.set(tool.id,editor.world().tools.at(-1).id);}

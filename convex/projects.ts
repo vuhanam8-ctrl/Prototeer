@@ -1,7 +1,8 @@
 import { internalMutation, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v, ConvexError } from "convex/values";
-import { digestToken, requireAccess, requireEditor, requireOwner, safeSessionId } from "./lib/access";
+import { digestToken, requireAccess, requireEditor, requireOwner, requireUnusedTokenDigest, safeSessionId } from "./lib/access";
+import { boardSnapshotFields, insertBoard } from "./lib/boards";
 import { deleteSnapshot, insertSnapshot } from "./lib/snapshots";
 
 const OPEN_OPERATION_LIMIT = 2;
@@ -11,73 +12,30 @@ const MAX_RESOURCE_VERSIONS = 4_000;
 
 const roleValidator = v.union(v.literal("owner"), v.literal("editor"), v.literal("viewer"));
 
-function safeName(name: string) {
-  const value = name.trim().slice(0, 100);
-  if (!value) throw new ConvexError({ code: "project_name_required" });
-  return value;
-}
-
 export const create = mutation({
   args: {
-    publicId: v.string(),
+    ...boardSnapshotFields,
     ownerToken: v.string(),
     editorToken: v.string(),
     viewerToken: v.string(),
     sessionId: v.string(),
-    name: v.string(),
-    formatVersion: v.number(),
-    chunks: v.array(v.string()),
-    byteLength: v.number(),
   },
   handler: async (ctx, args) => {
-    safeSessionId(args.sessionId);
-    if (!/^[A-Za-z0-9_-]{20,80}$/.test(args.publicId)) {
-      throw new ConvexError({ code: "invalid_project_id" });
-    }
-    if (!Number.isInteger(args.formatVersion) || args.formatVersion < 1 || args.formatVersion > 100) {
-      throw new ConvexError({ code: "invalid_project_format" });
-    }
-    const existing = await ctx.db
-      .query("projects")
-      .withIndex("by_public_id", (q) => q.eq("publicId", args.publicId))
-      .unique();
-    if (existing) throw new ConvexError({ code: "project_id_unavailable" });
     const digests = await Promise.all([
       digestToken(args.ownerToken),
       digestToken(args.editorToken),
       digestToken(args.viewerToken),
     ]);
     if (new Set(digests).size !== 3) throw new ConvexError({ code: "access_keys_must_be_unique" });
-    const now = Date.now();
-    const projectId = await ctx.db.insert("projects", {
-      publicId: args.publicId,
-      name: safeName(args.name),
-      formatVersion: args.formatVersion,
-      currentRevision: 0,
-      snapshotRevision: 0,
-      createdAt: now,
-      updatedAt: now,
-      simulationStatus: "paused",
-      simulationGeneration: 0,
-      simulationTick: 0,
-    });
-    const snapshotId = await insertSnapshot(ctx, {
-      projectId,
-      revision: 0,
-      kind: "project",
-      reason: "Created",
-      sessionId: args.sessionId,
-      chunks: args.chunks,
-      byteLength: args.byteLength,
-    });
-    await ctx.db.patch(projectId, { currentSnapshotId: snapshotId });
+    await Promise.all(digests.map((digest) => requireUnusedTokenDigest(ctx, digest)));
+    const { projectId, updatedAt } = await insertBoard(ctx, args, args.sessionId);
     for (const [index, role] of (["owner", "editor", "viewer"] as const).entries()) {
       await ctx.db.insert("projectCapabilities", {
         projectId,
         tokenDigest: digests[index],
         role,
         label: role === "owner" ? "Recovery owner" : `Default ${role} link`,
-        createdAt: now,
+        createdAt: updatedAt,
       });
     }
     return { publicId: args.publicId, role: "owner" as const, revision: 0 };
@@ -275,6 +233,7 @@ export const createCapability = mutation({
   handler: async (ctx, args) => {
     const { project, capability } = await requireAccess(ctx, args.publicId, args.token);
     requireOwner(capability.role);
+    if (project.workspaceId) throw new ConvexError({ code: "project_invite_required" });
     if (args.role === "owner") throw new ConvexError({ code: "owner_links_cannot_be_shared" });
     const grants = await ctx.db
       .query("projectCapabilities")
@@ -284,11 +243,7 @@ export const createCapability = mutation({
       throw new ConvexError({ code: "access_link_limit_reached" });
     }
     const tokenDigest = await digestToken(args.newToken);
-    const existing = await ctx.db
-      .query("projectCapabilities")
-      .withIndex("by_token_digest", (q) => q.eq("tokenDigest", tokenDigest))
-      .unique();
-    if (existing) throw new ConvexError({ code: "access_key_unavailable" });
+    await requireUnusedTokenDigest(ctx, tokenDigest);
     const id = await ctx.db.insert("projectCapabilities", {
       projectId: project._id,
       tokenDigest,
@@ -305,6 +260,7 @@ export const listCapabilities = query({
   handler: async (ctx, args) => {
     const { project, capability } = await requireAccess(ctx, args.publicId, args.token);
     requireOwner(capability.role);
+    if (project.workspaceId) throw new ConvexError({ code: "project_invite_required" });
     const grants = await ctx.db
       .query("projectCapabilities")
       .withIndex("by_project", (q) => q.eq("projectId", project._id))
@@ -324,6 +280,7 @@ export const revokeCapability = mutation({
   handler: async (ctx, args) => {
     const { project, capability } = await requireAccess(ctx, args.publicId, args.token);
     requireOwner(capability.role);
+    if (project.workspaceId) throw new ConvexError({ code: "project_invite_required" });
     const target = await ctx.db.get(args.capabilityId);
     if (!target || target.projectId !== project._id) throw new ConvexError({ code: "link_not_found" });
     if (target.role === "owner") throw new ConvexError({ code: "owner_link_cannot_be_revoked" });

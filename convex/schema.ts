@@ -5,8 +5,27 @@ const role = v.union(v.literal("owner"), v.literal("editor"), v.literal("viewer"
 const simulationStatus = v.union(v.literal("paused"), v.literal("running"));
 
 export default defineSchema({
+  workspaces: defineTable({
+    publicId: v.string(),
+    name: v.string(),
+    createdAt: v.number(),
+    publishedAt: v.optional(v.number()),
+  }).index("by_public_id", ["publicId"]),
+
+  workspaceCapabilities: defineTable({
+    workspaceId: v.id("workspaces"),
+    tokenDigest: v.string(),
+    role,
+    label: v.string(),
+    createdAt: v.number(),
+    revokedAt: v.optional(v.number()),
+  })
+    .index("by_token_digest", ["tokenDigest"])
+    .index("by_workspace", ["workspaceId"]),
+
   projects: defineTable({
     publicId: v.string(),
+    workspaceId: v.optional(v.id("workspaces")),
     name: v.string(),
     formatVersion: v.number(),
     currentRevision: v.number(),
@@ -23,6 +42,7 @@ export default defineSchema({
     simulationSourceRevision: v.optional(v.number()),
   })
     .index("by_public_id", ["publicId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_updated_at", ["updatedAt"])
     .index("by_simulation_lease", ["simulationStatus", "simulationLeaseUntil"]),
 
@@ -35,6 +55,7 @@ export default defineSchema({
     revokedAt: v.optional(v.number()),
   })
     .index("by_token_digest", ["tokenDigest"])
+    .index("by_project_token", ["projectId", "tokenDigest"])
     .index("by_project", ["projectId"]),
 
   projectRevisions: defineTable({

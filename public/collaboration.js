@@ -137,6 +137,7 @@
     let presenceState = { view: 'board' };
     let presenceSentAt = 0;
     let tailGeneration = 0;
+    let boardGeneration = 0;
     let simulationStatus = 'paused';
     let simulationGeneration = 0;
     let controller = false;
@@ -243,11 +244,12 @@
       return value;
     }
 
-    async function applyIncoming(operation, notify = true) {
+    async function applyIncoming(operation, notify = true, board = active) {
       if (!shadow || seen.has(operation.opId)) return;
+      const materialized = await materializeOperation(operation);
+      if (active !== board || !shadow || seen.has(operation.opId)) return;
       seen.add(operation.opId);
       if (seen.size > 4000) seen.delete(seen.values().next().value);
-      const materialized = await materializeOperation(operation);
       shadow = ops.apply(shadow, materialized) || shadow;
       versions[operation.resourceKey] = operation.resultingVersion ?? versions[operation.resourceKey] ?? 0;
       revision = Math.max(revision, operation.sequence || 0);
@@ -257,6 +259,7 @@
 
     async function processTail(result) {
       if (!active || !result) return;
+      const board = active;
       if (result.needsBootstrap) {
         await bootstrap(active.projectId, active.token, { preserveUi: true });
         return;
@@ -267,7 +270,8 @@
       const list = [...(result.operations || [])].sort((a, b) => a.sequence - b.sequence);
       const remote = [];
       for (const operation of list) if (operation.sequence > revision) {
-        const materialized = await applyIncoming(operation, false);
+        const materialized = await applyIncoming(operation, false, board);
+        if (active !== board) return;
         if (materialized) remote.push(materialized);
       }
       if (remote.length) {
@@ -367,13 +371,20 @@
 
     async function bootstrap(projectId, token, config = {}) {
       requireClient();
+      const generation = ++boardGeneration;
+      const managed = config.managed ?? (active?.projectId === projectId && active?.token === token && active.managed);
       emitStatus('syncing');
       const data = await client.query(apiRoot.projects.open, { publicId: projectId, token });
-      active = { projectId, token };
+      if (generation !== boardGeneration) throw new Error('board_changed');
+      active = { projectId, token, managed };
+      seen.clear();
+      artworkByData.clear();
+      artworkById.clear();
       let project = JSON.parse(data.chunks.join(''));
       let replayRevision = data.project.snapshotRevision;
       const replay = async operation => {
         const materialized = await materializeOperation(operation);
+        if (generation !== boardGeneration) throw new Error('board_changed');
         project = ops.apply(project, materialized) || project;
         seen.add(operation.opId);
         replayRevision = Math.max(replayRevision, operation.sequence || 0);
@@ -383,6 +394,7 @@
       while (replayRevision < data.project.revision) {
         if (++pageCount > 200) throw new Error('checkpoint_required');
         const page = await client.query(apiRoot.collaboration.tail, { publicId: projectId, token, after: replayRevision });
+        if (generation !== boardGeneration) throw new Error('board_changed');
         if (page.needsBootstrap || !page.operations?.length) throw new Error('checkpoint_required');
         for (const operation of [...page.operations].sort((a, b) => a.sequence - b.sequence)) await replay(operation);
       }
@@ -393,8 +405,10 @@
       shadow = clone(project);
       pendingWorld = null;
       simulationStatus = data.project.simulationStatus;
-      remember({ projectId, token, role, name: data.project.name });
-      changeHash(projectId, token);
+      if (!managed) {
+        remember({ projectId, token, role, name: data.project.name });
+        changeHash(projectId, token);
+      }
       clearSubscriptions();
       bindSubscriptions();
       hooks.onBootstrap?.(clone(project), { role, revision, preserveUi: Boolean(config.preserveUi), projectId });
@@ -726,8 +740,11 @@
       return bootstrap(projectId, record.token);
     }
 
-    function leave() {
+    function leave({ preserveLocation = false } = {}) {
+      boardGeneration++;
       clearSubscriptions();
+      clearTimeout(flushTimer);
+      flushTimer = 0;
       active = null;
       role = 'viewer';
       revision = snapshotRevision = 0;
@@ -735,10 +752,15 @@
       shadow = pendingWorld = null;
       simulationStatus = 'paused';
       controller = false;
-      const url = new URL(global.location.href);
-      url.hash = '';
-      global.history?.replaceState?.(null, '', url);
-      global.document?.body?.classList.remove('collaboration-linked');
+      seen.clear();
+      artworkByData.clear();
+      artworkById.clear();
+      if (!preserveLocation) {
+        const url = new URL(global.location.href);
+        url.hash = '';
+        global.history?.replaceState?.(null, '', url);
+        global.document?.body?.classList.remove('collaboration-linked');
+      }
       hooks.onPresence?.([]);
       emitStatus('local');
     }
@@ -748,6 +770,51 @@
       closed = true;
       clearSubscriptions();
       client?.close?.();
+    };
+
+    const boardSnapshot = (publicId, world) => ({
+      publicId,
+      name: world.name,
+      formatVersion: world.version,
+      ...splitUtf8(world),
+    });
+    const workspaces = {
+      url: () => deploymentUrl,
+      desktop: isDesktop,
+      token: randomKey,
+      async create(publicId, ownerToken, name, boardId, world) {
+        return requireClient().mutation(apiRoot.workspaces.create, {
+          publicId, ownerToken, name, sessionId: guest.sessionId, board: boardSnapshot(boardId, world),
+        });
+      },
+      async open(access) {
+        return requireClient().query(apiRoot.workspaces.open, access);
+      },
+      subscribe(access, onChange, onError) {
+        return requireClient().onUpdate(apiRoot.workspaces.open, access, onChange, onError);
+      },
+      async addBoard(access, boardId, world) {
+        return requireClient().mutation(apiRoot.workspaces.addBoard, {
+          ...access, sessionId: guest.sessionId, board: boardSnapshot(boardId, world),
+        });
+      },
+      async updateDraftBoard(access, boardId, world) {
+        return requireClient().mutation(apiRoot.workspaces.updateDraftBoard, {
+          ...access, sessionId: guest.sessionId, board: boardSnapshot(boardId, world),
+        });
+      },
+      async invite(access, newToken, roleName, expectedBoardIds) {
+        return requireClient().mutation(apiRoot.workspaces.createCapability, {
+          ...access, newToken, role: roleName, label: roleName === 'editor' ? 'Can edit' : 'Can view',
+          ...(expectedBoardIds ? { expectedBoardIds } : {}),
+        });
+      },
+      async listCapabilities(access) {
+        return requireClient().query(apiRoot.workspaces.listCapabilities, access);
+      },
+      async revokeCapability(access, capabilityId) {
+        return requireClient().mutation(apiRoot.workspaces.revokeCapability, { ...access, capabilityId });
+      },
     };
 
     return {
@@ -761,8 +828,10 @@
       joinFromLocation,
       createOnline,
       bootstrap,
+      workspaces,
       projectChanged,
       flush,
+      hasPendingEdits: () => Boolean(pendingWorld || flushing),
       checkpoint,
       editableWorld,
       shareInfo,
