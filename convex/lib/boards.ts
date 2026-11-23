@@ -10,6 +10,7 @@ export const boardSnapshotFields = {
   formatVersion: v.number(),
   chunks: v.array(v.string()),
   byteLength: v.number(),
+  preview: v.optional(v.string()),
 };
 
 type BoardSnapshot = {
@@ -18,7 +19,15 @@ type BoardSnapshot = {
   formatVersion: number;
   chunks: string[];
   byteLength: number;
+  preview?: string;
 };
+
+export function safeBoardPreview(value?: string) {
+  if (value !== undefined && (value.length > 64 * 44 || /[^0-9a-f]/.test(value))) {
+    throw new ConvexError({ code: "invalid_board_preview" });
+  }
+  return value;
+}
 
 export function safeName(name: string) {
   const value = name.trim().slice(0, 100);
@@ -55,11 +64,13 @@ export async function insertBoard(
   requireBoardFormat(board.formatVersion);
   if (await findBoard(ctx, board.publicId)) throw new ConvexError({ code: "project_id_unavailable" });
   const name = safeName(board.name);
+  const preview = safeBoardPreview(board.preview);
   const now = Date.now();
   const projectId = await ctx.db.insert("projects", {
     publicId: board.publicId,
     ...(workspaceId ? { workspaceId } : {}),
     name,
+    ...(preview === undefined ? {} : { preview }),
     formatVersion: board.formatVersion,
     currentRevision: 0,
     snapshotRevision: 0,
@@ -79,5 +90,5 @@ export async function insertBoard(
     byteLength: board.byteLength,
   });
   await ctx.db.patch(projectId, { currentSnapshotId: snapshotId });
-  return { projectId, publicId: board.publicId, name, updatedAt: now };
+  return { projectId, publicId: board.publicId, name, updatedAt: now, preview };
 }

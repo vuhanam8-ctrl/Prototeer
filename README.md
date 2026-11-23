@@ -6,7 +6,7 @@ A monochrome simulation editor with custom brushes, creatures, artwork, explicit
 
 Open docs/dev/index.html directly in a modern browser, or extract Prototeer.zip and open index.html. The HTML includes its CSS and JavaScript. No installation, server, account, internet connection, module loader or external fonts are needed.
 
-**New Project** in the lobby opens a form for the project name. The project starts with **Board 1**. Open it to enter the workspace, or use **Add Board** on the project page to create another board. The pursuit demo and JSON import are available from the lobby.
+**New Project** on the front page opens a form for the project name. After creation, the project page shows its name and a **Board 1** preview. Select a board card to enter the workspace, or use **Add Board** to create another board. Open **Projects** from the front page for saved projects and JSON import. The pursuit demo is also available from the front page.
 
 Save project uses IndexedDB in the current browser. Each board keeps its own editable data and artwork. **Export** downloads that board as JSON. **Import JSON** opens it again. Browser storage can be blocked, cleared, or scoped differently for file URLs; keep JSON exports. If a browser save fails, Save downloads a project file instead. Existing saved boards and project files remain compatible.
 

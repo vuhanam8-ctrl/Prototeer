@@ -776,8 +776,20 @@
       publicId,
       name: world.name,
       formatVersion: world.version,
+      ...(options.preview ? { preview: options.preview(world) } : {}),
       ...splitUtf8(world),
     });
+
+    async function updateBoardPreview() {
+      if (!active?.managed || role === 'viewer' || !shadow || !options.preview || pendingWorld || flushing) return;
+      try {
+        await client.mutation(apiRoot.workspaces.updatePreview, {
+          ...credentials(), expectedRevision: revision, preview: options.preview(shadow),
+        });
+      } catch {
+        // Preview failures do not affect the saved board or its live edits.
+      }
+    }
     const workspaces = {
       url: () => deploymentUrl,
       desktop: isDesktop,
@@ -829,6 +841,7 @@
       createOnline,
       bootstrap,
       workspaces,
+      updateBoardPreview,
       projectChanged,
       flush,
       hasPendingEdits: () => Boolean(pendingWorld || flushing),

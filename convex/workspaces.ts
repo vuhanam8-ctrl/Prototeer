@@ -5,12 +5,13 @@ import type { Doc, Id } from "./_generated/dataModel";
 import {
   digestToken,
   findWorkspaceCapability,
+  requireAccess,
   requireEditor,
   requireOwner,
   requireUnusedTokenDigest,
   safeSessionId,
 } from "./lib/access";
-import { boardSnapshotFields, findBoard, insertBoard, requireBoardFormat, requireNewPublicId, safeName } from "./lib/boards";
+import { boardSnapshotFields, findBoard, insertBoard, requireBoardFormat, requireNewPublicId, safeBoardPreview, safeName } from "./lib/boards";
 import { deleteSnapshot, insertSnapshot } from "./lib/snapshots";
 
 const MAX_BOARDS = 50;
@@ -36,8 +37,8 @@ async function requireWorkspaceAccess(ctx: QueryCtx | MutationCtx, publicId: str
   return { workspace, capability };
 }
 
-const boardInfo = ({ publicId, name, updatedAt }: Pick<Doc<"projects">, "publicId" | "name" | "updatedAt">) => ({
-  publicId, name, updatedAt,
+const boardInfo = ({ publicId, name, updatedAt, preview }: Pick<Doc<"projects">, "publicId" | "name" | "updatedAt" | "preview">) => ({
+  publicId, name, updatedAt, preview,
 });
 
 function getBoards(ctx: MutationCtx | QueryCtx, workspaceId: Id<"workspaces">) {
@@ -149,12 +150,26 @@ export const updateDraftBoard = mutation({
       byteLength: args.board.byteLength,
     });
     const name = safeName(args.board.name);
+    const preview = safeBoardPreview(args.board.preview);
     const updatedAt = Date.now();
     await ctx.db.patch(board._id, {
-      currentSnapshotId, name, updatedAt, formatVersion: args.board.formatVersion,
+      currentSnapshotId, name, updatedAt, preview, formatVersion: args.board.formatVersion,
     });
     await deleteSnapshot(ctx, previousSnapshotId);
-    return { publicId: board.publicId, name, updatedAt };
+    return { publicId: board.publicId, name, updatedAt, preview };
+  },
+});
+
+export const updatePreview = mutation({
+  args: { ...credentials, expectedRevision: v.number(), preview: v.string() },
+  handler: async (ctx, args) => {
+    const { project, capability } = await requireAccess(ctx, args.publicId, args.token);
+    if (!project.workspaceId) throw new ConvexError({ code: "project_not_found" });
+    requireEditor(capability.role);
+    if (project.currentRevision !== args.expectedRevision) return { status: "stale" as const };
+    if (project.preview === args.preview) return { status: "unchanged" as const };
+    await ctx.db.patch(project._id, { preview: safeBoardPreview(args.preview) });
+    return { status: "saved" as const };
   },
 });
 

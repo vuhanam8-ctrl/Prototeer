@@ -73,6 +73,125 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
   background: #191d23;
 }
 
+.front-lobby {
+  background: #17191d;
+}
+
+.front-lobby-top {
+  justify-content: space-between;
+}
+
+.front-lobby-main {
+  display: grid;
+  grid-template-columns: minmax(0, .88fr) minmax(0, 1.12fr);
+  align-items: center;
+  gap: clamp(28px, 6vw, 100px);
+  max-width: 1480px;
+  min-height: min(680px, calc(100svh - 68px));
+  padding: clamp(52px, 9vw, 136px) clamp(22px, 6vw, 96px);
+  margin-inline: auto;
+  background: transparent;
+}
+
+.front-lobby-copy h1 {
+  max-width: 11ch;
+  margin: 0;
+  color: #f4f5f7;
+  font-size: clamp(44px, 6.2vw, 92px);
+  font-weight: 700;
+  letter-spacing: -.07em;
+  line-height: .98;
+}
+
+.front-lobby-copy > p:not(.project-hub-status) {
+  margin: 26px 0 30px;
+  color: #b8bec7;
+  font-size: clamp(17px, 1.7vw, 22px);
+  line-height: 1.5;
+}
+
+.front-lobby-copy .project-hub-actions {
+  gap: 12px;
+}
+
+.front-lobby-copy button {
+  min-height: 46px;
+  padding-inline: 18px;
+}
+
+.front-lobby-scene {
+  position: relative;
+  align-self: center;
+  padding: clamp(10px, 1.5vw, 22px);
+  border: 1px solid #414852;
+  border-radius: 16px;
+  background: #252930;
+  box-shadow: 0 28px 64px #0005;
+}
+
+.front-lobby-board {
+  display: grid;
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+  grid-template-rows: repeat(16, minmax(0, 1fr));
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  border: 1px solid #4c5562;
+  border-radius: 7px;
+  background:
+    linear-gradient(90deg, #535a6340 1px, transparent 1px) 0 0 / calc(100% / 24) 100%,
+    linear-gradient(#535a6340 1px, transparent 1px) 0 0 / 100% calc(100% / 16),
+    radial-gradient(ellipse at 55% 40%, #292e36, #1c2026 82%);
+}
+
+.scene-wall {
+  border: 1px solid #797f89;
+  background: repeating-linear-gradient(90deg, #a1acb541 0 1px, transparent 1px calc(100% / var(--cells, 1))), #4d5560;
+}
+
+.wall-north { grid-area: 3 / 5 / 4 / 20; --cells: 15; }
+.wall-west { grid-area: 4 / 5 / 12 / 6; }
+.wall-south { grid-area: 12 / 5 / 13 / 16; --cells: 11; }
+.wall-island { grid-area: 7 / 10 / 8 / 15; --cells: 5; }
+.wall-east { grid-area: 4 / 19 / 8 / 20; }
+
+.scene-zone {
+  grid-area: 8 / 16 / 13 / 21;
+  z-index: 0;
+  border: 1px dashed #a8b3c0a3;
+  background:
+    repeating-linear-gradient(135deg, transparent 0 6px, #a1acb519 6px 7px),
+    #a1acb51a;
+}
+
+.scene-route {
+  grid-area: 6 / 8 / 10 / 18;
+  margin: 0 6% 0 5%;
+  border-right: 1px dashed #aab4c0;
+  border-top: 1px dashed #aab4c0;
+  border-top-right-radius: 12px;
+}
+
+.scene-object, .scene-selection {
+  margin: 9%;
+  border-radius: 2px;
+}
+
+.scene-object {
+  grid-area: 5 / 7 / 7 / 9;
+  border: 1px solid #adb9c7;
+  background: #75808e;
+}
+
+.scene-selection {
+  grid-area: 9 / 17 / 11 / 19;
+  z-index: 1;
+  border: 1px solid #f4f5f7;
+  outline: 1px solid #f4f5f75c;
+  outline-offset: 4px;
+  background: #d6dde6;
+  box-shadow: 0 0 22px #d6dde661;
+}
+
 .project-hub-top {
   min-height: 68px;
   display: flex;
@@ -113,8 +232,8 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
 }
 
 .project-board-heading {
-  margin-top: 32px;
-  padding-top: 20px;
+  margin-top: clamp(35px, 5vw, 64px);
+  padding-top: 24px;
   border-top: 1px solid var(--line);
 }
 
@@ -162,6 +281,65 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
 
 .project-hub-list small {
   color: var(--muted);
+}
+
+#projectPage .project-hub-main {
+  max-width: 1400px;
+}
+
+#projectPageTitle {
+  font-size: clamp(33px, 5vw, 58px);
+}
+
+#projectBoardList {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 294px), 1fr));
+  gap: clamp(18px, 3vw, 32px);
+  margin-top: 26px;
+}
+
+#projectBoardList .board-card {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #4b5260;
+  border-radius: 11px;
+  background: #242830;
+}
+
+#projectBoardList .board-card:hover {
+  border-color: #8b96a4;
+  background: #2d333c;
+}
+
+#projectBoardList .board-card:focus-visible,
+.front-lobby button:focus-visible {
+  outline: 2px solid #d6dde6;
+  outline-offset: 3px;
+}
+
+.board-card-preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-bottom: 1px solid #424954;
+  background:
+    linear-gradient(90deg, #57616f50 1px, transparent 1px),
+    linear-gradient(#57616f50 1px, transparent 1px) #20242b;
+  background-size: 11px 11px;
+}
+
+.board-card-title {
+  align-self: center;
+  padding: 15px 18px;
+  color: #f0f2f6;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .project-hub-dialog {
@@ -222,9 +400,54 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
   }
 }
 
+@media (max-width: 760px) {
+  .front-lobby-main {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+    min-height: auto;
+  }
+
+  .front-lobby-scene {
+    width: min(100%, 540px);
+  }
+}
+
 </style></head><body>
-<section id="projectLobby" class="project-hub" aria-labelledby="lobbyTitle" data-analytics-region="projects">
-  <div class="project-hub-top"><span class="brand">prototeer</span></div>
+<section id="frontLobby" class="project-hub front-lobby" aria-labelledby="frontTitle" data-analytics-region="projects">
+  <div class="project-hub-top front-lobby-top">
+    <span class="brand">prototeer</span>
+    <button id="frontProjects" type="button">Projects</button>
+  </div>
+  <main class="front-lobby-main">
+    <div class="front-lobby-copy">
+      <h1 id="frontTitle" tabindex="-1">Prototype game mechanics.</h1>
+      <p>Build and test rules on a 2D board.</p>
+      <div class="project-hub-actions">
+        <button id="frontNewProject" type="button" class="primary">New Project</button>
+        <button id="frontDemo" type="button">Pursuit demo</button>
+      </div>
+      <p id="frontStatus" class="project-hub-status" role="status"></p>
+    </div>
+    <div class="front-lobby-scene" aria-hidden="true">
+      <div class="front-lobby-board">
+        <span class="scene-wall wall-north"></span>
+        <span class="scene-wall wall-west"></span>
+        <span class="scene-wall wall-south"></span>
+        <span class="scene-wall wall-island"></span>
+        <span class="scene-wall wall-east"></span>
+        <span class="scene-zone"></span>
+        <span class="scene-route"></span>
+        <span class="scene-object"></span>
+        <span class="scene-selection"></span>
+      </div>
+    </div>
+  </main>
+</section>
+<section id="projectLobby" class="project-hub" aria-labelledby="lobbyTitle" data-analytics-region="projects" hidden>
+  <div class="project-hub-top">
+    <span class="brand">prototeer</span>
+    <button id="projectsBackToFront" type="button">Home</button>
+  </div>
   <main class="project-hub-main">
     <div class="project-hub-heading">
       <h1 id="lobbyTitle" tabindex="-1">Projects</h1>
@@ -6501,8 +6724,20 @@ globalThis.convex=convex;
       publicId,
       name: world.name,
       formatVersion: world.version,
+      ...(options.preview ? { preview: options.preview(world) } : {}),
       ...splitUtf8(world),
     });
+
+    async function updateBoardPreview() {
+      if (!active?.managed || role === 'viewer' || !shadow || !options.preview || pendingWorld || flushing) return;
+      try {
+        await client.mutation(apiRoot.workspaces.updatePreview, {
+          ...credentials(), expectedRevision: revision, preview: options.preview(shadow),
+        });
+      } catch {
+        // Preview failures do not affect the saved board or its live edits.
+      }
+    }
     const workspaces = {
       url: () => deploymentUrl,
       desktop: isDesktop,
@@ -6554,6 +6789,7 @@ globalThis.convex=convex;
       createOnline,
       bootstrap,
       workspaces,
+      updateBoardPreview,
       projectChanged,
       flush,
       hasPendingEdits: () => Boolean(pendingWorld || flushing),
@@ -6584,6 +6820,98 @@ globalThis.convex=convex;
   global.PrototeerCollaboration = { create, splitUtf8, accessUrl };
 })(globalThis);
 
+(function installBoardPreview(global) {
+  'use strict';
+
+  // The editor's current board format is a 64 by 44 grid.
+  const width = 64;
+  const height = 44;
+  const cellCount = width * height;
+  const hex = '0123456789abcdef';
+  const palette = [
+    null, '#293039', '#313a44', '#3a4653',
+    '#576472', '#627080', '#6e7d8c', '#7d8a99',
+    '#8b98a8', '#9ba8b6', '#adb8c5', '#bec8d4',
+    '#cfd8e2', '#dfe6ee', '#edf2f7', '#fafcff',
+  ];
+
+  function luminance(color) {
+    if (!/^#[0-9a-f]{6}$/i.test(color)) return 128;
+    const rgb = Number.parseInt(color.slice(1), 16);
+    return (rgb >> 16) * .2126 + ((rgb >> 8) & 255) * .7152 + (rgb & 255) * .0722;
+  }
+
+  function fromWorld(world, zoneCellsFor = (_world, zone) => zone.cells) {
+    const cells = new Uint8Array(cellCount);
+    let end = 0;
+    for (const zone of world?.zones ?? []) {
+      if (!zone.enabled) continue;
+      const shade = 1 + Math.round(luminance(zone.color) / 128);
+      for (const cell of zoneCellsFor(world, zone) ?? []) {
+        if (!Number.isInteger(cell) || cell < 0 || cell >= cellCount) continue;
+        cells[cell] = Math.max(cells[cell], shade);
+        end = Math.max(end, cell + 1);
+      }
+    }
+
+    const tools = new Map((world?.tools ?? []).map(tool => [
+      tool.id,
+      tool.mobile ? 15 : 4 + Math.round(luminance(tool.color) * 10 / 255),
+    ]));
+    for (const entity of world?.entities ?? []) {
+      const { x, y } = entity;
+      const shade = tools.get(entity.toolId);
+      if (entity.removed || !shade || !Number.isInteger(x) || !Number.isInteger(y) ||
+          x < 0 || x >= width || y < 0 || y >= height) continue;
+      const cell = y * width + x;
+      cells[cell] = shade;
+      end = Math.max(end, cell + 1);
+    }
+
+    // One character per cell, with the unused zero tail left implicit.
+    let preview = '';
+    for (let i = 0; i < end; i++) preview += hex[cells[i]];
+    return preview;
+  }
+
+  function update(canvas, source) {
+    const ctx = canvas?.getContext?.('2d');
+    if (!ctx || !canvas.width || !canvas.height) return;
+    const preview = typeof source === 'string' ? source : fromWorld(source);
+    const scale = Math.min(canvas.width / (width + 2), canvas.height / (height + 2));
+    const x0 = (canvas.width - width * scale) / 2;
+    const y0 = (canvas.height - height * scale) / 2;
+    ctx.fillStyle = '#171b20';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#21272e';
+    ctx.fillRect(x0, y0, width * scale, height * scale);
+
+    for (let i = 0; i < Math.min(preview.length, cellCount); i++) {
+      const color = palette[hex.indexOf(preview[i])];
+      if (!color) continue;
+      ctx.fillStyle = color;
+      ctx.fillRect(x0 + (i % width) * scale, y0 + Math.floor(i / width) * scale, scale, scale);
+    }
+
+    ctx.lineWidth = Math.min(1, scale / 4);
+    ctx.strokeStyle = '#161a215c';
+    ctx.beginPath();
+    for (let x = 0; x <= width; x++) {
+      ctx.moveTo(x0 + x * scale, y0);
+      ctx.lineTo(x0 + x * scale, y0 + height * scale);
+    }
+    for (let y = 0; y <= height; y++) {
+      ctx.moveTo(x0, y0 + y * scale);
+      ctx.lineTo(x0 + width * scale, y0 + y * scale);
+    }
+    ctx.stroke();
+    ctx.strokeStyle = '#738191';
+    ctx.strokeRect(x0, y0, width * scale, height * scale);
+  }
+
+  global.PrototeerBoardPreview = { fromWorld, update };
+})(globalThis);
+
 (function installProjectHome(global) {
   'use strict';
 
@@ -6593,7 +6921,7 @@ globalThis.convex=convex;
   const validToken = /^[A-Za-z0-9_-]{43,256}$/;
   const roleRank = { viewer: 0, editor: 1, owner: 2 };
 
-  function start({ api, createBoard, openLocal, openShared, openLegacy, exitEditor, connect, collaboration, chooseImport, openDemo, download, copy, toast, record }) {
+  function start({ api, createBoard, openLocal, openShared, openLegacy, exitEditor, connect, collaboration, chooseImport, openDemo, download, copy, toast, record, previewOf }) {
     const $ = id => global.document.getElementById(id);
     const online = collaboration?.workspaces;
     let project = null;
@@ -6601,6 +6929,7 @@ globalThis.convex=convex;
     let busy = false;
     let subscription;
     let pendingBoard = null;
+    let boardRender = 0;
 
     function stored(key) {
       try { return JSON.parse(global.localStorage.getItem(key)); }
@@ -6655,7 +6984,8 @@ globalThis.convex=convex;
 
     function show(page) {
       inEditor = page === 'editorShell';
-      for (const id of ['projectLobby', 'projectPage', 'editorShell']) $(id).hidden = id !== page;
+      for (const id of ['frontLobby', 'projectLobby', 'projectPage', 'editorShell']) $(id).hidden = id !== page;
+      if (page !== 'projectPage') boardRender++;
       $('editorBackToProject').hidden = !project;
       $('projectName').setAttribute('aria-label', project ? 'Board name' : 'Project name');
     }
@@ -6668,6 +6998,7 @@ globalThis.convex=convex;
       button.onclick = onClick;
       item.append(button);
       list.append(item);
+      return button;
     }
 
     function status(id, message = '') {
@@ -6694,7 +7025,7 @@ globalThis.convex=convex;
             access_link_limit_reached: 'This project has reached its invite link limit.',
           }[code] ?? (typeof code === 'string' && /[ .]/.test(code) && !code.includes('[CONVEX')
             ? code : 'Could not complete this action. Try again.');
-          status(statusId, message);
+          status(statusId === 'frontStatus' && !$('projectPage').hidden ? 'projectPageStatus' : statusId, message);
           if (inEditor) toast(message);
         } finally { busy = false; }
       };
@@ -6705,12 +7036,21 @@ globalThis.convex=convex;
       subscription = null;
     }
 
+    function showFront() {
+      stopWatching();
+      pendingBoard = null;
+      project = null;
+      setRoute();
+      show('frontLobby');
+      status('frontStatus');
+    }
+
     async function showLobby() {
       stopWatching();
       pendingBoard = null;
       project = null;
       show('projectLobby');
-      setRoute();
+      setRoute({ projects: '1' });
       const list = $('lobbyProjectList');
       list.replaceChildren();
       status('lobbyStatus');
@@ -6744,15 +7084,45 @@ globalThis.convex=convex;
       }
     }
 
+    async function fillMissingPreviews(entry, cards, render) {
+      for (const { board, canvas } of cards) {
+        if (render !== boardRender) return;
+        try {
+          const world = await api('projects/' + board.publicId);
+          if (render !== boardRender || project?.publicId !== entry.publicId) return;
+          const preview = previewOf(world);
+          global.PrototeerBoardPreview.update(canvas, preview);
+          updateBoardSummary(world, preview);
+        } catch {
+          // The grid remains visible if a saved board cannot be read.
+        }
+      }
+    }
+
     function renderBoards() {
       $('projectPageTitle').textContent = project.name;
       $('projectAddBoard').hidden = project.role === 'viewer';
       $('projectInvite').hidden = project.role !== 'owner';
       const list = $('projectBoardList');
       list.replaceChildren();
+      const missing = [];
+      const render = ++boardRender;
       for (const board of project.boards) {
-        buttonRow(list, board.name, exclusive('projectPageStatus', () => showBoard(board.publicId)));
+        const button = buttonRow(list, board.name, exclusive('projectPageStatus', () => showBoard(board.publicId)));
+        button.classList.add('board-card');
+        const canvas = global.document.createElement('canvas');
+        canvas.classList.add('board-card-preview');
+        canvas.width = 384;
+        canvas.height = 240;
+        canvas.setAttribute('aria-hidden', 'true');
+        const title = global.document.createElement('span');
+        title.classList.add('board-card-title');
+        title.textContent = board.name;
+        button.replaceChildren(canvas, title);
+        global.PrototeerBoardPreview?.update(canvas, board.preview);
+        if (!project.shared && previewOf && typeof board.preview !== 'string') missing.push({ board, canvas });
       }
+      if (missing.length) void fillMissingPreviews(project, missing, render);
     }
 
     async function selectDeployment(backend) {
@@ -6765,9 +7135,16 @@ globalThis.convex=convex;
       const access = accessOf(entry);
       subscription = online.subscribe(access, updated => {
         if (project?.publicId !== access.publicId || project.token !== access.token) return;
+        const changed = project.name !== updated.name || project.role !== updated.role ||
+          project.boards.length !== updated.boards.length || updated.boards.some((board, index) => {
+            const previous = project.boards[index];
+            return board.publicId !== previous?.publicId || board.name !== previous.name || board.preview !== previous.preview;
+          });
         project = { ...project, ...updated };
-        rememberShared(project);
-        renderBoards();
+        if (changed) {
+          rememberShared(project);
+          if (!$('projectPage').hidden) renderBoards();
+        }
       }, () => status('projectPageStatus', 'The project could not refresh. Check the link or your connection.'));
     }
 
@@ -6807,20 +7184,22 @@ globalThis.convex=convex;
       await api('projects/' + world.id, { method: 'PUT', body: JSON.stringify(world) });
     }
 
-    function updateBoardName(id, name) {
+    function updateBoardSummary(world, preview = previewOf?.(world)) {
       if (!project || project.shared) return;
       const latest = stored(localPrefix + project.publicId) ?? project;
-      const board = latest.boards.find(board => board.publicId === id);
-      if (!board || board.name === name) return;
-      const updated = { ...latest, boards: latest.boards.map(board => board.publicId === id ? { ...board, name } : board) };
-      rememberLocal(updated);
+      const board = latest.boards.find(board => board.publicId === world.id);
+      if (!board || (board.name === world.name && board.preview === preview)) return;
+      const updated = { ...latest, boards: latest.boards.map(item => item === board ? { ...item, name: world.name, preview } : item) };
       project = updated;
+      try { rememberLocal(updated); } catch {
+        // Board saves remain usable when thumbnail metadata cannot be cached.
+      }
     }
 
     async function leaveWorkspace() {
       if (!inEditor) return;
       const saved = await exitEditor(Boolean(project?.shared));
-      if (saved) updateBoardName(saved.id, saved.name);
+      if (saved) updateBoardSummary(saved);
       inEditor = false;
     }
 
@@ -6837,7 +7216,7 @@ globalThis.convex=convex;
       await leaveWorkspace();
       const world = createBoard('Board 1');
       const entry = { publicId: global.crypto.randomUUID(), name, role: 'owner', updatedAt: Date.now(),
-        boards: [{ publicId: world.id, name: world.name }] };
+        boards: [{ publicId: world.id, name: world.name, preview: '' }] };
       await saveBoard(world);
       rememberLocal(entry);
       $('projectNameDialog').close();
@@ -6861,7 +7240,7 @@ globalThis.convex=convex;
         await saveBoard(pendingBoard);
         const latest = stored(localPrefix + entry.publicId) ?? entry;
         const updated = { ...latest, updatedAt: Date.now(),
-          boards: [...latest.boards, { publicId: pendingBoard.id, name: pendingBoard.name }] };
+          boards: [...latest.boards, { publicId: pendingBoard.id, name: pendingBoard.name, preview: '' }] };
         rememberLocal(updated);
         project = updated;
       }
@@ -6965,7 +7344,9 @@ globalThis.convex=convex;
       await refreshGrants(entry).catch(() => {});
     }
 
-    $('lobbyNewProject').onclick = openNameDialog;
+    $('frontNewProject').onclick = $('lobbyNewProject').onclick = openNameDialog;
+    $('frontProjects').onclick = exclusive('lobbyStatus', showLobby);
+    $('projectsBackToFront').onclick = exclusive('frontStatus', showFront);
     $('projectNameCancel').onclick = () => $('projectNameDialog').close();
     $('projectNameForm').onsubmit = event => {
       event.preventDefault();
@@ -6981,7 +7362,7 @@ globalThis.convex=convex;
       openDemo();
       show('editorShell');
     });
-    $('lobbyDemo').onclick = launchDemo;
+    $('frontDemo').onclick = $('lobbyDemo').onclick = launchDemo;
     $('projectAddBoard').onclick = exclusive('projectPageStatus', addBoard);
     $('projectBackToLobby').onclick = exclusive('projectPageStatus', showLobby);
     $('editorBackToProject').onclick = exclusive('projectPageStatus', async () => {
@@ -7025,17 +7406,19 @@ globalThis.convex=convex;
       } else if (validId.test(params.get('project')) && validToken.test(params.get('access'))) {
         show('editorShell');
         try { await openLegacy(); }
-        catch (error) { show('projectLobby'); throw error; }
+        catch (error) { show('frontLobby'); throw error; }
       } else if (validId.test(local)) {
         const known = stored(localPrefix + local);
         const world = known ? null : await api('projects/' + local);
         await openProject(known ?? { publicId: local, name: world.name, role: 'owner', boards: [{ publicId: local, name: world.name }] }, board);
-      } else {
+      } else if (params.get('projects') === '1') {
         await showLobby();
+      } else {
+        showFront();
       }
     }
 
-    void exclusive('lobbyStatus', restoreLocation)();
+    void exclusive('frontStatus', restoreLocation)();
     return {
       newProject: openNameDialog,
       launchDemo,
@@ -7054,7 +7437,7 @@ globalThis.convex=convex;
         })();
         return true;
       },
-      updateBoardName,
+      updateBoardSummary,
       inEditor: () => inEditor,
     };
   }
@@ -7496,6 +7879,9 @@ function createProjectStore(factory,validate,maxBytes){
 
 let storageFactory;try{storageFactory=globalThis.indexedDB;}catch{}globalThis.PrototeerStorage=createProjectStore(storageFactory,validWorld,MAX_BYTES);
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const previewOf=globalThis.PrototeerBoardPreview
+  ? data=>globalThis.PrototeerBoardPreview.fromWorld(data,zoneCells)
+  : undefined;
 const GRAPH_X=1.3,GRAPH_Y=1.65,GRAPH_NODE_WIDTH=270,GRAPH_PORT_Y=55;
 let splitEnabled=true,splitInspector=false,followActive=true,graphToolsOpen=false,graphDrag=null,connecting=null;
 let projectHome=null;
@@ -7560,7 +7946,7 @@ function doUndo(reverse=false){if(collaboration?.active())return toast('Shared u
 async function api(path,options){if(globalThis.PrototeerStorage)return globalThis.PrototeerStorage.request(path,options);const response=await fetch('/api/'+path,options);if(!response.ok){let msg='Backend request failed';try{msg=(await response.json()).error||msg;}catch{}throw Error(msg);}return response.json();}
 function downloadBlob(blob,fileName){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=fileName;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function download(data,name,extension='.json'){downloadBlob(new Blob([JSON.stringify(data,null,extension==='.json'?2:0)],{type:'application/json'}),(name||'world').replace(/[^a-z0-9_-]/gi,'-')+extension);}
-$('save').onclick=async()=>{const candidate=collaboration?.active()&&running?(collaboration.editableWorld()??world):world;if(!validWorld(candidate))return toast('Project contains an incomplete or invalid definition. Check your object types and rules.');const body=JSON.stringify(candidate);if(new TextEncoder().encode(body).length>MAX_BYTES)return toast('Project exceeds 12 MB. Use smaller artwork files.');const rev=revision,b=$('save');b.disabled=true;b.textContent='Saving…';analytics?.record('save_started',{panel:'header',flow:'project-save'});try{if(collaboration?.active())await collaboration.checkpoint();else {await api('projects/'+world.id,{method:'PUT',headers:{'Content-Type':'application/json'},body});projectHome?.updateBoardName(candidate.id,candidate.name);}if(revision===rev||collaboration?.active()){dirty=false;$('saveState').textContent=collaboration?.active()?'Synced':'Saved';}analytics?.record('save_succeeded',{panel:'header',flow:'project-save',result:'success'});toast(collaboration?.active()?'Shared project revision saved.':globalThis.PrototeerStorage?'Project and artwork saved in this browser.':'Project and artwork saved to the backend.');}catch(e){analytics?.record('save_failed',{panel:'header',flow:'project-save',result:'error',context:{errorCode:'save_failed'}});if(globalThis.PrototeerStorage&&!collaboration?.active()){download(world,world.name);toast('Browser save failed. Downloaded a project file instead; use Import JSON to reopen it.');}else toast('Could not save this project.');}finally{b.disabled=false;b.textContent='Save project';}};
+$('save').onclick=async()=>{const candidate=collaboration?.active()&&running?(collaboration.editableWorld()??world):world;if(!validWorld(candidate))return toast('Project contains an incomplete or invalid definition. Check your object types and rules.');const body=JSON.stringify(candidate);if(new TextEncoder().encode(body).length>MAX_BYTES)return toast('Project exceeds 12 MB. Use smaller artwork files.');const rev=revision,b=$('save');b.disabled=true;b.textContent='Saving…';analytics?.record('save_started',{panel:'header',flow:'project-save'});try{if(collaboration?.active()){await collaboration.checkpoint();void collaboration.updateBoardPreview?.();}else {await api('projects/'+world.id,{method:'PUT',headers:{'Content-Type':'application/json'},body});projectHome?.updateBoardSummary(candidate);}if(revision===rev||collaboration?.active()){dirty=false;$('saveState').textContent=collaboration?.active()?'Synced':'Saved';}analytics?.record('save_succeeded',{panel:'header',flow:'project-save',result:'success'});toast(collaboration?.active()?'Shared project revision saved.':globalThis.PrototeerStorage?'Project and artwork saved in this browser.':'Project and artwork saved to the backend.');}catch(e){analytics?.record('save_failed',{panel:'header',flow:'project-save',result:'error',context:{errorCode:'save_failed'}});if(globalThis.PrototeerStorage&&!collaboration?.active()){download(world,world.name);toast('Browser save failed. Downloaded a project file instead; use Import JSON to reopen it.');}else toast('Could not save this project.');}finally{b.disabled=false;b.textContent='Save project';}};
 $('export').onclick=()=>{const data=collaboration?.active()?(collaboration.editableWorld()??world):world;download(data,data.name);analytics?.record('project_exported',{panel:'header'});toast('Project exported, including your artwork.');};
 function unityExportWorld() {
   return collaboration?.active() ? collaboration.editableWorld() ?? world : world;
@@ -7745,7 +8131,7 @@ function treeVisible(){return view==='behavior'||isSplitWorkspace();}
 function updateWorkspace(){const active=isSplitWorkspace();$('editorLayout').classList.toggle('split-active',active);$('editorLayout').classList.toggle('inspector-open',active&&splitInspector);$('simulationWorkspace').classList.toggle('split-mode',active);$('simulationWorkspace').classList.toggle('hidden',!['board','behavior'].includes(view));for(const k of ['board','tools','stats','rules','tags','behavior','history','creatures','zones','directors'])$(k+'View').classList.toggle('hidden',!(k===view||active&&['board','behavior'].includes(k)));$('toggleSplit').ariaPressed=String(splitEnabled);$('toggleInspector').classList.toggle('hidden',!active);$('toggleInspector').ariaPressed=String(splitInspector);$('toggleInspector').textContent=splitInspector?'Hide inspector':'Show inspector';}
 $('toggleSplit').onclick=()=>{splitEnabled=!splitEnabled;switchView(['board','behavior'].includes(view)?view:'board');requestDraw();};$('toggleInspector').onclick=()=>{splitInspector=!splitInspector;updateWorkspace();requestDraw();};
 
-const ANALYTICS_CONSENT_KEY='prototeer.analytics-consent.v1',ANALYTICS_PARTICIPANT_KEY='prototeer.analytics-participant.v1',ANALYTICS_UI_VERSION='dev-2026-11-23';
+const ANALYTICS_CONSENT_KEY='prototeer.analytics-consent.v1',ANALYTICS_PARTICIPANT_KEY='prototeer.analytics-participant.v1',ANALYTICS_UI_VERSION='dev-2026-11-23-lobby';
 const analyticsSessionId=('session_'+(crypto.randomUUID?.()??`${Date.now()}_${Math.random().toString(36).slice(2)}`)).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,100);
 const analyticsPanel=()=>({tools:'object-types',zones:'zones',creatures:'creatures',stats:'stats',rules:'interaction-rules',tags:'tags',behavior:'behavior-tree',directors:'directors',history:'history',board:'board'}[view]??'unknown');
 const allowedAnalyticsControls=()=>[...document.querySelectorAll('[id]')].map(element=>element.id).filter(id=>/^[A-Za-z][A-Za-z0-9_-]{0,79}$/.test(id));
@@ -7764,7 +8150,7 @@ document.addEventListener?.('change',event=>{const control=event.target?.id;if(!
 function setSyncState(state,role='local'){const el=$('syncState');el.dataset.state=state==='local'?'local':state;el.textContent=state==='local'?'Local':state==='syncing'?'Syncing…':state==='offline'?'Offline':state==='conflict'?'Conflict':role==='owner'?'Owner · synced':role==='editor'?'Editor · synced':'View only';const viewer=collaboration?.active()&&!collaboration.canEdit();$('projectName').readOnly=viewer;$('save').disabled=viewer;$('play').disabled=viewer;$('step').disabled=viewer;$('reset').disabled=viewer;const shared=collaboration?.active();$('undo').disabled=shared;$('redo').disabled=shared;}
 function renderPresence(entries=[]){$('presence').innerHTML=entries.slice(0,5).map(person=>`<span class="presence-avatar" style="background:${esc(person.color)}" title="${esc(person.displayName)} · ${esc(person.role)}">${esc(person.initials)}</span>`).join('')+(entries.length>5?`<span class="presence-more">+${entries.length-5}</span>`:'');$('remotePointers').innerHTML=entries.filter(person=>!person.self&&person.view==='board'&&Number.isFinite(person.pointerX)&&Number.isFinite(person.pointerY)).map(person=>`<span class="remote-pointer" style="left:${100*person.pointerX}%;top:${100*person.pointerY}%;color:${esc(person.color)}"><span>${esc(person.displayName)}</span></span>`).join('');}
 function applyRuntimeFrame(data){data=normalizeWorld(data);if(!validWorld(data))return;applyingRemote=true;world=data;applyingRemote=false;revision++;runtimeRevision++;renderRuntime();}
-function initializeCollaboration(){if(!globalThis.PrototeerCollaboration)return;collaboration=globalThis.PrototeerCollaboration.create({hooks:{onBootstrap:(data,meta)=>applyRemoteProject(data,meta.preserveUi),onRemoteOperation:operation=>applyRemoteOperation(operation),onRemoteOperations:operations=>applyRemoteOperations(operations),onPresence:renderPresence,onStatus:status=>{setSyncState(status.state,status.role);if(status.active&&status.state==='synced')$('saveState').textContent='Synced';},onConflict:()=>toast('A collaborator changed the same item. The latest shared version was loaded.'),onError:()=>toast('Shared edits are waiting for the connection.'),onSimulation:state=>setRunning(state.status==='running',true,state.controller),onRuntimeFrame:applyRuntimeFrame}});setSyncState('local');setupAnalytics();if(startsInLobby)return;void collaboration.joinFromLocation().then(result=>{if(result?.desktopRequired)return;}).catch(()=>{setSyncState('offline');toast(collaboration.available()?'This shared project could not be opened.':'Online collaboration needs a deployed Convex backend.');});}
+function initializeCollaboration(){if(!globalThis.PrototeerCollaboration)return;collaboration=globalThis.PrototeerCollaboration.create({preview:previewOf,hooks:{onBootstrap:(data,meta)=>applyRemoteProject(data,meta.preserveUi),onRemoteOperation:operation=>applyRemoteOperation(operation),onRemoteOperations:operations=>applyRemoteOperations(operations),onPresence:renderPresence,onStatus:status=>{setSyncState(status.state,status.role);if(status.active&&status.state==='synced')$('saveState').textContent='Synced';},onConflict:()=>toast('A collaborator changed the same item. The latest shared version was loaded.'),onError:()=>toast('Shared edits are waiting for the connection.'),onSimulation:state=>setRunning(state.status==='running',true,state.controller),onRuntimeFrame:applyRuntimeFrame}});setSyncState('local');setupAnalytics();if(startsInLobby)return;void collaboration.joinFromLocation().then(result=>{if(result?.desktopRequired)return;}).catch(()=>{setSyncState('offline');toast(collaboration.available()?'This shared project could not be opened.':'Online collaboration needs a deployed Convex backend.');});}
 
 async function copyText(value){
   try{await navigator.clipboard.writeText(value);toast('Link copied.');}
@@ -7795,7 +8181,7 @@ initializeCollaboration();
 if(startsInLobby){
   const openBoard=data=>{adopt(data);setMode('select');switchView('board');requestDraw();};
   projectHome=globalThis.PrototeerProjectHome.start({
-    api,collaboration,
+    api,collaboration,previewOf,
     createBoard(name){return Object.assign(createWorld(),{name});},
     openLocal:openBoard,
     async openShared(boardId,token){
@@ -7814,6 +8200,7 @@ if(startsInLobby){
           await collaboration.flush();
           if(collaboration.hasPendingEdits())throw Error('Wait for your shared edits to sync before leaving this board.');
           if(sharedController)await collaboration.pauseSimulation();
+          void collaboration.updateBoardPreview?.();
         }
         collaboration.leave({preserveLocation});
         applyRunningState(false);
@@ -7829,7 +8216,7 @@ if(startsInLobby){
         dirty=false;
         $('saveState').textContent='Saved';
       }
-      return {id:current.id,name:current.name};
+      return current;
     },
     async connect(url){
       const value=String(url??'').trim().replace(/\/$/,'');

@@ -24,7 +24,7 @@ The complete example is rebuilt from a fresh board created through New Project u
 
 Convex-backed anonymous online projects are implemented in `convex/` and the browser-global collaboration modules. They require a developer-owned Convex deployment and a `PROTOTEER_CONVEX_URL` at build time before the public GitHub Pages build can connect. Testers do not sign up. Owner/editor/viewer access uses high-entropy fragment links; only token digests are stored. Collaboration is desktop-only.
 
-The lobby and board list live in `public/project-home.js`. Local project manifests reference the existing board saves. Convex workspace capabilities authorize each board in a shared project, while board checkpoints, edits, and runs stay independent. The first invite publishes the project's boards before it issues an access link. The original local saves remain as backups.
+The front page, saved-project list, and board list are wired in `public/project-home.js`. Local project manifests reference the existing board saves. Board cards render a small grid derived from saved cell positions, without embedding uploaded artwork. Convex workspace capabilities authorize each board in a shared project, while board checkpoints, edits, and runs stay independent. The first invite publishes the project's boards before it issues an access link. The original local saves remain as backups.
 
 Online data uses chunked project checkpoints, resource-versioned incremental operations, live presence, mergeable zone painting, saved revisions, Convex File Storage, and a leased authoritative browser for shared simulation frames. Camera, zoom, selection and panels stay local. The engine does not import Convex.
 

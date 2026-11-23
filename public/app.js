@@ -1,6 +1,9 @@
 import {WIDTH,HEIGHT,MAX_BYTES,uid,createWorld,makeTool,addStat,place,step,interact,makeRule,makeDecision,validWorld,emit,setToolStats,defineTag,makeNode,canConnect,normalizeWorld,generateHistory,makeCreatureTool,addUtilityBranch,makeZone,zoneCells,inZone,nodeUtilityScore,createDemoWorld,makeDirector,makeDirectorRule,sendSignal,activeMessage,connectDirectorInput,debugSnapshot,messageField,messageFieldsForRule} from './engine.js';
 import {compileUnityExport} from './unity-export.js';
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const previewOf=globalThis.PrototeerBoardPreview
+  ? data=>globalThis.PrototeerBoardPreview.fromWorld(data,zoneCells)
+  : undefined;
 const GRAPH_X=1.3,GRAPH_Y=1.65,GRAPH_NODE_WIDTH=270,GRAPH_PORT_Y=55;
 let splitEnabled=true,splitInspector=false,followActive=true,graphToolsOpen=false,graphDrag=null,connecting=null;
 let projectHome=null;
@@ -65,7 +68,7 @@ function doUndo(reverse=false){if(collaboration?.active())return toast('Shared u
 async function api(path,options){if(globalThis.PrototeerStorage)return globalThis.PrototeerStorage.request(path,options);const response=await fetch('/api/'+path,options);if(!response.ok){let msg='Backend request failed';try{msg=(await response.json()).error||msg;}catch{}throw Error(msg);}return response.json();}
 function downloadBlob(blob,fileName){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=fileName;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function download(data,name,extension='.json'){downloadBlob(new Blob([JSON.stringify(data,null,extension==='.json'?2:0)],{type:'application/json'}),(name||'world').replace(/[^a-z0-9_-]/gi,'-')+extension);}
-$('save').onclick=async()=>{const candidate=collaboration?.active()&&running?(collaboration.editableWorld()??world):world;if(!validWorld(candidate))return toast('Project contains an incomplete or invalid definition. Check your object types and rules.');const body=JSON.stringify(candidate);if(new TextEncoder().encode(body).length>MAX_BYTES)return toast('Project exceeds 12 MB. Use smaller artwork files.');const rev=revision,b=$('save');b.disabled=true;b.textContent='Saving…';analytics?.record('save_started',{panel:'header',flow:'project-save'});try{if(collaboration?.active())await collaboration.checkpoint();else {await api('projects/'+world.id,{method:'PUT',headers:{'Content-Type':'application/json'},body});projectHome?.updateBoardName(candidate.id,candidate.name);}if(revision===rev||collaboration?.active()){dirty=false;$('saveState').textContent=collaboration?.active()?'Synced':'Saved';}analytics?.record('save_succeeded',{panel:'header',flow:'project-save',result:'success'});toast(collaboration?.active()?'Shared project revision saved.':globalThis.PrototeerStorage?'Project and artwork saved in this browser.':'Project and artwork saved to the backend.');}catch(e){analytics?.record('save_failed',{panel:'header',flow:'project-save',result:'error',context:{errorCode:'save_failed'}});if(globalThis.PrototeerStorage&&!collaboration?.active()){download(world,world.name);toast('Browser save failed. Downloaded a project file instead; use Import JSON to reopen it.');}else toast('Could not save this project.');}finally{b.disabled=false;b.textContent='Save project';}};
+$('save').onclick=async()=>{const candidate=collaboration?.active()&&running?(collaboration.editableWorld()??world):world;if(!validWorld(candidate))return toast('Project contains an incomplete or invalid definition. Check your object types and rules.');const body=JSON.stringify(candidate);if(new TextEncoder().encode(body).length>MAX_BYTES)return toast('Project exceeds 12 MB. Use smaller artwork files.');const rev=revision,b=$('save');b.disabled=true;b.textContent='Saving…';analytics?.record('save_started',{panel:'header',flow:'project-save'});try{if(collaboration?.active()){await collaboration.checkpoint();void collaboration.updateBoardPreview?.();}else {await api('projects/'+world.id,{method:'PUT',headers:{'Content-Type':'application/json'},body});projectHome?.updateBoardSummary(candidate);}if(revision===rev||collaboration?.active()){dirty=false;$('saveState').textContent=collaboration?.active()?'Synced':'Saved';}analytics?.record('save_succeeded',{panel:'header',flow:'project-save',result:'success'});toast(collaboration?.active()?'Shared project revision saved.':globalThis.PrototeerStorage?'Project and artwork saved in this browser.':'Project and artwork saved to the backend.');}catch(e){analytics?.record('save_failed',{panel:'header',flow:'project-save',result:'error',context:{errorCode:'save_failed'}});if(globalThis.PrototeerStorage&&!collaboration?.active()){download(world,world.name);toast('Browser save failed. Downloaded a project file instead; use Import JSON to reopen it.');}else toast('Could not save this project.');}finally{b.disabled=false;b.textContent='Save project';}};
 $('export').onclick=()=>{const data=collaboration?.active()?(collaboration.editableWorld()??world):world;download(data,data.name);analytics?.record('project_exported',{panel:'header'});toast('Project exported, including your artwork.');};
 function unityExportWorld() {
   return collaboration?.active() ? collaboration.editableWorld() ?? world : world;
@@ -250,7 +253,7 @@ function treeVisible(){return view==='behavior'||isSplitWorkspace();}
 function updateWorkspace(){const active=isSplitWorkspace();$('editorLayout').classList.toggle('split-active',active);$('editorLayout').classList.toggle('inspector-open',active&&splitInspector);$('simulationWorkspace').classList.toggle('split-mode',active);$('simulationWorkspace').classList.toggle('hidden',!['board','behavior'].includes(view));for(const k of ['board','tools','stats','rules','tags','behavior','history','creatures','zones','directors'])$(k+'View').classList.toggle('hidden',!(k===view||active&&['board','behavior'].includes(k)));$('toggleSplit').ariaPressed=String(splitEnabled);$('toggleInspector').classList.toggle('hidden',!active);$('toggleInspector').ariaPressed=String(splitInspector);$('toggleInspector').textContent=splitInspector?'Hide inspector':'Show inspector';}
 $('toggleSplit').onclick=()=>{splitEnabled=!splitEnabled;switchView(['board','behavior'].includes(view)?view:'board');requestDraw();};$('toggleInspector').onclick=()=>{splitInspector=!splitInspector;updateWorkspace();requestDraw();};
 
-const ANALYTICS_CONSENT_KEY='prototeer.analytics-consent.v1',ANALYTICS_PARTICIPANT_KEY='prototeer.analytics-participant.v1',ANALYTICS_UI_VERSION='dev-2026-11-23';
+const ANALYTICS_CONSENT_KEY='prototeer.analytics-consent.v1',ANALYTICS_PARTICIPANT_KEY='prototeer.analytics-participant.v1',ANALYTICS_UI_VERSION='dev-2026-11-23-lobby';
 const analyticsSessionId=('session_'+(crypto.randomUUID?.()??`${Date.now()}_${Math.random().toString(36).slice(2)}`)).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,100);
 const analyticsPanel=()=>({tools:'object-types',zones:'zones',creatures:'creatures',stats:'stats',rules:'interaction-rules',tags:'tags',behavior:'behavior-tree',directors:'directors',history:'history',board:'board'}[view]??'unknown');
 const allowedAnalyticsControls=()=>[...document.querySelectorAll('[id]')].map(element=>element.id).filter(id=>/^[A-Za-z][A-Za-z0-9_-]{0,79}$/.test(id));
@@ -269,7 +272,7 @@ document.addEventListener?.('change',event=>{const control=event.target?.id;if(!
 function setSyncState(state,role='local'){const el=$('syncState');el.dataset.state=state==='local'?'local':state;el.textContent=state==='local'?'Local':state==='syncing'?'Syncing…':state==='offline'?'Offline':state==='conflict'?'Conflict':role==='owner'?'Owner · synced':role==='editor'?'Editor · synced':'View only';const viewer=collaboration?.active()&&!collaboration.canEdit();$('projectName').readOnly=viewer;$('save').disabled=viewer;$('play').disabled=viewer;$('step').disabled=viewer;$('reset').disabled=viewer;const shared=collaboration?.active();$('undo').disabled=shared;$('redo').disabled=shared;}
 function renderPresence(entries=[]){$('presence').innerHTML=entries.slice(0,5).map(person=>`<span class="presence-avatar" style="background:${esc(person.color)}" title="${esc(person.displayName)} · ${esc(person.role)}">${esc(person.initials)}</span>`).join('')+(entries.length>5?`<span class="presence-more">+${entries.length-5}</span>`:'');$('remotePointers').innerHTML=entries.filter(person=>!person.self&&person.view==='board'&&Number.isFinite(person.pointerX)&&Number.isFinite(person.pointerY)).map(person=>`<span class="remote-pointer" style="left:${100*person.pointerX}%;top:${100*person.pointerY}%;color:${esc(person.color)}"><span>${esc(person.displayName)}</span></span>`).join('');}
 function applyRuntimeFrame(data){data=normalizeWorld(data);if(!validWorld(data))return;applyingRemote=true;world=data;applyingRemote=false;revision++;runtimeRevision++;renderRuntime();}
-function initializeCollaboration(){if(!globalThis.PrototeerCollaboration)return;collaboration=globalThis.PrototeerCollaboration.create({hooks:{onBootstrap:(data,meta)=>applyRemoteProject(data,meta.preserveUi),onRemoteOperation:operation=>applyRemoteOperation(operation),onRemoteOperations:operations=>applyRemoteOperations(operations),onPresence:renderPresence,onStatus:status=>{setSyncState(status.state,status.role);if(status.active&&status.state==='synced')$('saveState').textContent='Synced';},onConflict:()=>toast('A collaborator changed the same item. The latest shared version was loaded.'),onError:()=>toast('Shared edits are waiting for the connection.'),onSimulation:state=>setRunning(state.status==='running',true,state.controller),onRuntimeFrame:applyRuntimeFrame}});setSyncState('local');setupAnalytics();if(startsInLobby)return;void collaboration.joinFromLocation().then(result=>{if(result?.desktopRequired)return;}).catch(()=>{setSyncState('offline');toast(collaboration.available()?'This shared project could not be opened.':'Online collaboration needs a deployed Convex backend.');});}
+function initializeCollaboration(){if(!globalThis.PrototeerCollaboration)return;collaboration=globalThis.PrototeerCollaboration.create({preview:previewOf,hooks:{onBootstrap:(data,meta)=>applyRemoteProject(data,meta.preserveUi),onRemoteOperation:operation=>applyRemoteOperation(operation),onRemoteOperations:operations=>applyRemoteOperations(operations),onPresence:renderPresence,onStatus:status=>{setSyncState(status.state,status.role);if(status.active&&status.state==='synced')$('saveState').textContent='Synced';},onConflict:()=>toast('A collaborator changed the same item. The latest shared version was loaded.'),onError:()=>toast('Shared edits are waiting for the connection.'),onSimulation:state=>setRunning(state.status==='running',true,state.controller),onRuntimeFrame:applyRuntimeFrame}});setSyncState('local');setupAnalytics();if(startsInLobby)return;void collaboration.joinFromLocation().then(result=>{if(result?.desktopRequired)return;}).catch(()=>{setSyncState('offline');toast(collaboration.available()?'This shared project could not be opened.':'Online collaboration needs a deployed Convex backend.');});}
 
 async function copyText(value){
   try{await navigator.clipboard.writeText(value);toast('Link copied.');}
@@ -300,7 +303,7 @@ initializeCollaboration();
 if(startsInLobby){
   const openBoard=data=>{adopt(data);setMode('select');switchView('board');requestDraw();};
   projectHome=globalThis.PrototeerProjectHome.start({
-    api,collaboration,
+    api,collaboration,previewOf,
     createBoard(name){return Object.assign(createWorld(),{name});},
     openLocal:openBoard,
     async openShared(boardId,token){
@@ -319,6 +322,7 @@ if(startsInLobby){
           await collaboration.flush();
           if(collaboration.hasPendingEdits())throw Error('Wait for your shared edits to sync before leaving this board.');
           if(sharedController)await collaboration.pauseSimulation();
+          void collaboration.updateBoardPreview?.();
         }
         collaboration.leave({preserveLocation});
         applyRunningState(false);
@@ -334,7 +338,7 @@ if(startsInLobby){
         dirty=false;
         $('saveState').textContent='Saved';
       }
-      return {id:current.id,name:current.name};
+      return current;
     },
     async connect(url){
       const value=String(url??'').trim().replace(/\/$/,'');

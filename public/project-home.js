@@ -7,7 +7,7 @@
   const validToken = /^[A-Za-z0-9_-]{43,256}$/;
   const roleRank = { viewer: 0, editor: 1, owner: 2 };
 
-  function start({ api, createBoard, openLocal, openShared, openLegacy, exitEditor, connect, collaboration, chooseImport, openDemo, download, copy, toast, record }) {
+  function start({ api, createBoard, openLocal, openShared, openLegacy, exitEditor, connect, collaboration, chooseImport, openDemo, download, copy, toast, record, previewOf }) {
     const $ = id => global.document.getElementById(id);
     const online = collaboration?.workspaces;
     let project = null;
@@ -15,6 +15,7 @@
     let busy = false;
     let subscription;
     let pendingBoard = null;
+    let boardRender = 0;
 
     function stored(key) {
       try { return JSON.parse(global.localStorage.getItem(key)); }
@@ -69,7 +70,8 @@
 
     function show(page) {
       inEditor = page === 'editorShell';
-      for (const id of ['projectLobby', 'projectPage', 'editorShell']) $(id).hidden = id !== page;
+      for (const id of ['frontLobby', 'projectLobby', 'projectPage', 'editorShell']) $(id).hidden = id !== page;
+      if (page !== 'projectPage') boardRender++;
       $('editorBackToProject').hidden = !project;
       $('projectName').setAttribute('aria-label', project ? 'Board name' : 'Project name');
     }
@@ -82,6 +84,7 @@
       button.onclick = onClick;
       item.append(button);
       list.append(item);
+      return button;
     }
 
     function status(id, message = '') {
@@ -108,7 +111,7 @@
             access_link_limit_reached: 'This project has reached its invite link limit.',
           }[code] ?? (typeof code === 'string' && /[ .]/.test(code) && !code.includes('[CONVEX')
             ? code : 'Could not complete this action. Try again.');
-          status(statusId, message);
+          status(statusId === 'frontStatus' && !$('projectPage').hidden ? 'projectPageStatus' : statusId, message);
           if (inEditor) toast(message);
         } finally { busy = false; }
       };
@@ -119,12 +122,21 @@
       subscription = null;
     }
 
+    function showFront() {
+      stopWatching();
+      pendingBoard = null;
+      project = null;
+      setRoute();
+      show('frontLobby');
+      status('frontStatus');
+    }
+
     async function showLobby() {
       stopWatching();
       pendingBoard = null;
       project = null;
       show('projectLobby');
-      setRoute();
+      setRoute({ projects: '1' });
       const list = $('lobbyProjectList');
       list.replaceChildren();
       status('lobbyStatus');
@@ -158,15 +170,45 @@
       }
     }
 
+    async function fillMissingPreviews(entry, cards, render) {
+      for (const { board, canvas } of cards) {
+        if (render !== boardRender) return;
+        try {
+          const world = await api('projects/' + board.publicId);
+          if (render !== boardRender || project?.publicId !== entry.publicId) return;
+          const preview = previewOf(world);
+          global.PrototeerBoardPreview.update(canvas, preview);
+          updateBoardSummary(world, preview);
+        } catch {
+          // The grid remains visible if a saved board cannot be read.
+        }
+      }
+    }
+
     function renderBoards() {
       $('projectPageTitle').textContent = project.name;
       $('projectAddBoard').hidden = project.role === 'viewer';
       $('projectInvite').hidden = project.role !== 'owner';
       const list = $('projectBoardList');
       list.replaceChildren();
+      const missing = [];
+      const render = ++boardRender;
       for (const board of project.boards) {
-        buttonRow(list, board.name, exclusive('projectPageStatus', () => showBoard(board.publicId)));
+        const button = buttonRow(list, board.name, exclusive('projectPageStatus', () => showBoard(board.publicId)));
+        button.classList.add('board-card');
+        const canvas = global.document.createElement('canvas');
+        canvas.classList.add('board-card-preview');
+        canvas.width = 384;
+        canvas.height = 240;
+        canvas.setAttribute('aria-hidden', 'true');
+        const title = global.document.createElement('span');
+        title.classList.add('board-card-title');
+        title.textContent = board.name;
+        button.replaceChildren(canvas, title);
+        global.PrototeerBoardPreview?.update(canvas, board.preview);
+        if (!project.shared && previewOf && typeof board.preview !== 'string') missing.push({ board, canvas });
       }
+      if (missing.length) void fillMissingPreviews(project, missing, render);
     }
 
     async function selectDeployment(backend) {
@@ -179,9 +221,16 @@
       const access = accessOf(entry);
       subscription = online.subscribe(access, updated => {
         if (project?.publicId !== access.publicId || project.token !== access.token) return;
+        const changed = project.name !== updated.name || project.role !== updated.role ||
+          project.boards.length !== updated.boards.length || updated.boards.some((board, index) => {
+            const previous = project.boards[index];
+            return board.publicId !== previous?.publicId || board.name !== previous.name || board.preview !== previous.preview;
+          });
         project = { ...project, ...updated };
-        rememberShared(project);
-        renderBoards();
+        if (changed) {
+          rememberShared(project);
+          if (!$('projectPage').hidden) renderBoards();
+        }
       }, () => status('projectPageStatus', 'The project could not refresh. Check the link or your connection.'));
     }
 
@@ -221,20 +270,22 @@
       await api('projects/' + world.id, { method: 'PUT', body: JSON.stringify(world) });
     }
 
-    function updateBoardName(id, name) {
+    function updateBoardSummary(world, preview = previewOf?.(world)) {
       if (!project || project.shared) return;
       const latest = stored(localPrefix + project.publicId) ?? project;
-      const board = latest.boards.find(board => board.publicId === id);
-      if (!board || board.name === name) return;
-      const updated = { ...latest, boards: latest.boards.map(board => board.publicId === id ? { ...board, name } : board) };
-      rememberLocal(updated);
+      const board = latest.boards.find(board => board.publicId === world.id);
+      if (!board || (board.name === world.name && board.preview === preview)) return;
+      const updated = { ...latest, boards: latest.boards.map(item => item === board ? { ...item, name: world.name, preview } : item) };
       project = updated;
+      try { rememberLocal(updated); } catch {
+        // Board saves remain usable when thumbnail metadata cannot be cached.
+      }
     }
 
     async function leaveWorkspace() {
       if (!inEditor) return;
       const saved = await exitEditor(Boolean(project?.shared));
-      if (saved) updateBoardName(saved.id, saved.name);
+      if (saved) updateBoardSummary(saved);
       inEditor = false;
     }
 
@@ -251,7 +302,7 @@
       await leaveWorkspace();
       const world = createBoard('Board 1');
       const entry = { publicId: global.crypto.randomUUID(), name, role: 'owner', updatedAt: Date.now(),
-        boards: [{ publicId: world.id, name: world.name }] };
+        boards: [{ publicId: world.id, name: world.name, preview: '' }] };
       await saveBoard(world);
       rememberLocal(entry);
       $('projectNameDialog').close();
@@ -275,7 +326,7 @@
         await saveBoard(pendingBoard);
         const latest = stored(localPrefix + entry.publicId) ?? entry;
         const updated = { ...latest, updatedAt: Date.now(),
-          boards: [...latest.boards, { publicId: pendingBoard.id, name: pendingBoard.name }] };
+          boards: [...latest.boards, { publicId: pendingBoard.id, name: pendingBoard.name, preview: '' }] };
         rememberLocal(updated);
         project = updated;
       }
@@ -379,7 +430,9 @@
       await refreshGrants(entry).catch(() => {});
     }
 
-    $('lobbyNewProject').onclick = openNameDialog;
+    $('frontNewProject').onclick = $('lobbyNewProject').onclick = openNameDialog;
+    $('frontProjects').onclick = exclusive('lobbyStatus', showLobby);
+    $('projectsBackToFront').onclick = exclusive('frontStatus', showFront);
     $('projectNameCancel').onclick = () => $('projectNameDialog').close();
     $('projectNameForm').onsubmit = event => {
       event.preventDefault();
@@ -395,7 +448,7 @@
       openDemo();
       show('editorShell');
     });
-    $('lobbyDemo').onclick = launchDemo;
+    $('frontDemo').onclick = $('lobbyDemo').onclick = launchDemo;
     $('projectAddBoard').onclick = exclusive('projectPageStatus', addBoard);
     $('projectBackToLobby').onclick = exclusive('projectPageStatus', showLobby);
     $('editorBackToProject').onclick = exclusive('projectPageStatus', async () => {
@@ -439,17 +492,19 @@
       } else if (validId.test(params.get('project')) && validToken.test(params.get('access'))) {
         show('editorShell');
         try { await openLegacy(); }
-        catch (error) { show('projectLobby'); throw error; }
+        catch (error) { show('frontLobby'); throw error; }
       } else if (validId.test(local)) {
         const known = stored(localPrefix + local);
         const world = known ? null : await api('projects/' + local);
         await openProject(known ?? { publicId: local, name: world.name, role: 'owner', boards: [{ publicId: local, name: world.name }] }, board);
-      } else {
+      } else if (params.get('projects') === '1') {
         await showLobby();
+      } else {
+        showFront();
       }
     }
 
-    void exclusive('lobbyStatus', restoreLocation)();
+    void exclusive('frontStatus', restoreLocation)();
     return {
       newProject: openNameDialog,
       launchDemo,
@@ -468,7 +523,7 @@
         })();
         return true;
       },
-      updateBoardName,
+      updateBoardSummary,
       inEditor: () => inEditor,
     };
   }

@@ -15,7 +15,7 @@ const PrototeerStorage={async request(path,options){
 const {editor,get,query}=bootEditor({loadProjectHome:true,globals:{PrototeerStorage}});
 const ids=new Map([['root','root']]);const mapped=id=>{if(!id||id==='@self')return id??'';assert.ok(ids.has(id),'unmapped reference '+id);return ids.get(id);};const nav=view=>{const b=query('[data-view="'+view+'"]')[0];assert.ok(b);b.click();};const value=(id,v)=>{assert.ok(get(id),'missing field '+id);get(id).value=String(v??'');assert.equal(get(id).value,String(v??''),'editor cannot express '+id+' = '+v);};const checked=(id,v)=>{assert.ok(get(id));get(id).checked=!!v;};const click=id=>{assert.ok(get(id),'missing control '+id);get(id).click();const error=get('formError')?.textContent;assert.ok(!error,id+': '+error);};const choose=(container,attr,id)=>{const b=get(container).querySelector('['+attr+'="'+id+'"]');assert.ok(b,'missing '+attr+' '+id);b.click();};const checks=(attr,values)=>{const set=new Set(values);for(const el of get('dialogBody').querySelectorAll('['+attr+']')){const key=attr.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase());el.checked=set.has(el.dataset[key]);}};
 await new Promise(setImmediate);
-click('lobbyNewProject');
+click('frontNewProject');
 value('projectNameInput',recipe.name);
 get('projectNameForm').onsubmit({preventDefault(){}});
 await new Promise(setImmediate);

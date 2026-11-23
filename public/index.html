@@ -1,6 +1,39 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="prototeer-convex-url" content=""><title>Prototeer — Development</title><link rel="stylesheet" href="/style.css"></head><body>
-<section id="projectLobby" class="project-hub" aria-labelledby="lobbyTitle" data-analytics-region="projects">
-  <div class="project-hub-top"><span class="brand">prototeer</span></div>
+<section id="frontLobby" class="project-hub front-lobby" aria-labelledby="frontTitle" data-analytics-region="projects">
+  <div class="project-hub-top front-lobby-top">
+    <span class="brand">prototeer</span>
+    <button id="frontProjects" type="button">Projects</button>
+  </div>
+  <main class="front-lobby-main">
+    <div class="front-lobby-copy">
+      <h1 id="frontTitle" tabindex="-1">Prototype game mechanics.</h1>
+      <p>Build and test rules on a 2D board.</p>
+      <div class="project-hub-actions">
+        <button id="frontNewProject" type="button" class="primary">New Project</button>
+        <button id="frontDemo" type="button">Pursuit demo</button>
+      </div>
+      <p id="frontStatus" class="project-hub-status" role="status"></p>
+    </div>
+    <div class="front-lobby-scene" aria-hidden="true">
+      <div class="front-lobby-board">
+        <span class="scene-wall wall-north"></span>
+        <span class="scene-wall wall-west"></span>
+        <span class="scene-wall wall-south"></span>
+        <span class="scene-wall wall-island"></span>
+        <span class="scene-wall wall-east"></span>
+        <span class="scene-zone"></span>
+        <span class="scene-route"></span>
+        <span class="scene-object"></span>
+        <span class="scene-selection"></span>
+      </div>
+    </div>
+  </main>
+</section>
+<section id="projectLobby" class="project-hub" aria-labelledby="lobbyTitle" data-analytics-region="projects" hidden>
+  <div class="project-hub-top">
+    <span class="brand">prototeer</span>
+    <button id="projectsBackToFront" type="button">Home</button>
+  </div>
   <main class="project-hub-main">
     <div class="project-hub-heading">
       <h1 id="lobbyTitle" tabindex="-1">Projects</h1>
@@ -90,4 +123,4 @@
     </div>
   </form>
 </dialog>
-<dialog id="dialog" data-analytics-region="dialog"><div class="dialog-head"><div><span class="eyebrow" id="dialogEyebrow">EDITOR</span><h2 id="dialogTitle"></h2></div><button id="closeDialog" aria-label="Close dialog">×</button></div><div id="dialogBody"></div></dialog><div id="toast" role="status"></div><div id="usageConsent" class="usage-consent" hidden role="dialog" aria-label="Anonymous usage data"><p><strong>Help improve Prototeer?</strong> Allow anonymous interface actions and heatmap positions. Project content and artwork are never included.</p><div><button id="declineUsage">No thanks</button><button id="allowUsage" class="primary">Allow</button></div></div><div class="mobile-collaboration-gate" id="mobileCollaborationGate"><div><h1>Open this shared project on desktop</h1><p>Realtime collaboration is desktop-only in this version of Prototeer.</p></div></div><input type="file" id="importFile" accept="application/json" hidden><script src="/convex-client.js"></script><script src="/project-operations.js"></script><script src="/analytics.js"></script><script src="/collaboration.js"></script><script src="/project-home.js"></script><script type="module" src="/app.js"></script></body></html>
+<dialog id="dialog" data-analytics-region="dialog"><div class="dialog-head"><div><span class="eyebrow" id="dialogEyebrow">EDITOR</span><h2 id="dialogTitle"></h2></div><button id="closeDialog" aria-label="Close dialog">×</button></div><div id="dialogBody"></div></dialog><div id="toast" role="status"></div><div id="usageConsent" class="usage-consent" hidden role="dialog" aria-label="Anonymous usage data"><p><strong>Help improve Prototeer?</strong> Allow anonymous interface actions and heatmap positions. Project content and artwork are never included.</p><div><button id="declineUsage">No thanks</button><button id="allowUsage" class="primary">Allow</button></div></div><div class="mobile-collaboration-gate" id="mobileCollaborationGate"><div><h1>Open this shared project on desktop</h1><p>Realtime collaboration is desktop-only in this version of Prototeer.</p></div></div><input type="file" id="importFile" accept="application/json" hidden><script src="/convex-client.js"></script><script src="/project-operations.js"></script><script src="/analytics.js"></script><script src="/collaboration.js"></script><script src="/board-preview.js"></script><script src="/project-home.js"></script><script type="module" src="/app.js"></script></body></html>

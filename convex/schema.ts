@@ -27,6 +27,7 @@ export default defineSchema({
     publicId: v.string(),
     workspaceId: v.optional(v.id("workspaces")),
     name: v.string(),
+    preview: v.optional(v.string()),
     formatVersion: v.number(),
     currentRevision: v.number(),
     snapshotRevision: v.number(),
