@@ -252,6 +252,16 @@ body{font-size:16px;line-height:1.55}button,input,select,textarea{font-size:15px
   min-width: 0;
 }
 
+#lobbyProjectList > li {
+  display: flex;
+  flex-direction: column;
+}
+
+#lobbyProjectList > li > button {
+  height: auto;
+  flex: 1;
+}
+
 .project-hub-list > li > button {
   display: flex;
   flex-direction: column;

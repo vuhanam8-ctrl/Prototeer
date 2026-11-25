@@ -18,6 +18,7 @@
     let boardRender = 0;
     let boardNameAction = null;
     let boardToDelete = null;
+    let projectToDelete = null;
 
     function stored(key) {
       try { return JSON.parse(global.localStorage.getItem(key)); }
@@ -136,6 +137,20 @@
       status('frontStatus');
     }
 
+    function projectRow(list, entry) {
+      const { item } = buttonRow(list, entry.name, exclusive('lobbyStatus', () => openProject(entry)));
+      if (entry.role !== 'owner') return;
+      const actions = global.document.createElement('div');
+      actions.classList.add('board-card-actions');
+      const button = global.document.createElement('button');
+      button.type = 'button';
+      button.textContent = 'Delete Project';
+      button.setAttribute('aria-label', 'Delete project ' + entry.name);
+      button.onclick = () => showProjectDelete(entry);
+      actions.append(button);
+      item.append(actions);
+    }
+
     async function showLobby() {
       stopWatching();
       pendingBoard = null;
@@ -150,7 +165,7 @@
       const sharedIds = new Set(shared.map(entry => entry.publicId));
       for (const entry of [...local.filter(entry => !sharedIds.has(entry.sharedId)), ...shared].filter(entry => !entry.deleted)
         .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))) {
-        buttonRow(list, entry.name, exclusive('lobbyStatus', () => openProject(entry)));
+        projectRow(list, entry);
       }
       try {
         const saved = await api('projects');
@@ -163,7 +178,7 @@
             publicId: world.id, name: world.name, role: 'owner',
             boards: [{ publicId: world.id, name: world.name }],
           };
-          buttonRow(list, world.name, exclusive('lobbyStatus', () => openProject(entry)));
+          projectRow(list, entry);
         }
       } catch {
         status('lobbyStatus', 'Could not list browser saves. You can still import a project file.');
@@ -423,6 +438,28 @@
       renderBoards();
     }
 
+    async function deleteLocalBoard(entry, board) {
+      const latest = stored(localPrefix + entry.publicId) ?? entry;
+      const removed = {
+        ...latest, boards: latest.boards.filter(item => item.publicId !== board.publicId),
+        deletedBoardIds: [...new Set([...(latest.deletedBoardIds ?? []), board.publicId])],
+      };
+      rememberLocal(removed);
+      try {
+        await api('projects/' + board.publicId, { method: 'DELETE' });
+      } catch (error) {
+        const current = stored(localPrefix + entry.publicId) ?? removed;
+        const boards = [...current.boards];
+        const previousIndex = latest.boards.findIndex(item => item.publicId === board.publicId);
+        if (previousIndex >= 0 && !boards.some(item => item.publicId === board.publicId)) {
+          boards.splice(previousIndex, 0, latest.boards[previousIndex]);
+        }
+        rememberLocal({ ...current, boards, deletedBoardIds: current.deletedBoardIds?.filter(id => id !== board.publicId) });
+        throw error;
+      }
+      return removed;
+    }
+
     async function deleteBoard(board) {
       const entry = project;
       if (entry.shared) {
@@ -430,27 +467,7 @@
         project = { ...project, boards: project.boards.filter(item => item.publicId !== board.publicId) };
         rememberShared(project);
       } else {
-        const latest = stored(localPrefix + entry.publicId) ?? entry;
-        const removed = {
-          ...latest, boards: latest.boards.filter(item => item.publicId !== board.publicId),
-          deletedBoardIds: [...new Set([...(latest.deletedBoardIds ?? []), board.publicId])],
-        };
-        rememberLocal(removed);
-        try {
-          await api('projects/' + board.publicId, { method: 'DELETE' });
-        } catch (error) {
-          const current = stored(localPrefix + entry.publicId) ?? removed;
-          const boards = [...current.boards];
-          const previousIndex = latest.boards.findIndex(item => item.publicId === board.publicId);
-          if (previousIndex >= 0 && !boards.some(item => item.publicId === board.publicId)) {
-            boards.splice(previousIndex, 0, latest.boards[previousIndex]);
-          }
-          project = { ...current, boards, deletedBoardIds: current.deletedBoardIds?.filter(id => id !== board.publicId) };
-          rememberLocal(project);
-          renderBoards();
-          throw error;
-        }
-        project = removed;
+        project = await deleteLocalBoard(entry, board);
       }
       renderBoards();
     }
@@ -489,10 +506,20 @@
       boardFeedback('Deleted board “' + board.name + '”.');
     }
 
+    function showProjectDelete(entry) {
+      if (entry?.role !== 'owner') return;
+      projectToDelete = entry;
+      $('projectDeleteCopy').textContent = 'Delete “' + entry.name + '” and all its boards?' +
+        (entry.shared ? ' Its invite links will stop working.' : '');
+      status('projectDeleteStatus');
+      $('projectDeleteDialog').showModal();
+    }
+
     async function confirmProjectDelete() {
-      if (project?.role !== 'owner') return;
-      const entry = project;
+      const entry = projectToDelete;
+      if (entry?.role !== 'owner') return;
       if (entry.shared) {
+        await selectDeployment(entry.backend);
         await online.deleteProject(accessOf(entry));
         rememberShared({ publicId: entry.publicId, role: 'owner', deleted: true });
       } else {
@@ -502,8 +529,12 @@
           try { await online.deleteProject(accessOf(latest.upload)); }
           catch (error) { if (error?.data?.code !== 'access_denied') throw error; }
         }
-        for (const board of latest.boards) await deleteBoard(board);
-        rememberLocal({ ...project, deleted: true });
+        let remaining = latest;
+        for (const board of latest.boards) {
+          remaining = await deleteLocalBoard(remaining, board);
+          if (project?.publicId === entry.publicId) project = remaining;
+        }
+        rememberLocal({ ...remaining, deleted: true });
       }
       $('projectDeleteDialog').close();
       await showLobby();
@@ -650,13 +681,7 @@
     $('projectBackToLobby').onclick = exclusive('projectPageStatus', showFront);
     $('editorBackToProject').onclick = exclusive('projectPageStatus', returnToProject);
     $('editorAddBoard').onclick = () => showBoardNameDialog(null, true);
-    $('projectDelete').onclick = () => {
-      if (project?.role !== 'owner') return;
-      $('projectDeleteCopy').textContent = 'Delete “' + project.name + '” and all its boards?' +
-        (project.shared ? ' Its invite links will stop working.' : '');
-      status('projectDeleteStatus');
-      $('projectDeleteDialog').showModal();
-    };
+    $('projectDelete').onclick = () => showProjectDelete(project);
     for (const [prefix, action] of [['boardName', saveBoardName], ['boardDelete', confirmBoardDelete], ['projectDelete', confirmProjectDelete]]) {
       const dialog = $(prefix + 'Dialog');
       $(prefix + 'Cancel').onclick = () => { if (!busy) dialog.close(); };

@@ -102,11 +102,15 @@ test('a named project opens Board 1 and independently saves its boards in the of
   reopened.get('projectAddBoard').click();
   await reopened.get('boardNameForm').onsubmit({ preventDefault() {} });
   const remainingBoard = JSON.parse(localStorage.getItem(manifestKey)).boards[0].publicId;
-  reopened.get('projectDelete').click();
+  await reopened.get('projectBackToLobby').onclick();
+  await reopened.get('frontProjects').onclick();
+  const deleteProject = reopened.get('lobbyProjectList').children[0].children[1].children[0];
+  deleteProject.click();
   assert.match(reopened.get('projectDeleteCopy').textContent, /Enemy patrol.*all its boards/);
   reopened.get('projectDeleteCancel').click();
-  assert.equal(reopened.get('projectPage').hidden, false);
-  reopened.get('projectDelete').click();
+  assert.equal(reopened.get('projectPage').hidden, true);
+  assert.equal(reopened.get('projectLobby').hidden, false);
+  deleteProject.click();
   await reopened.get('projectDeleteForm').onsubmit({ preventDefault() {} });
   assert.equal(reopened.get('projectLobby').hidden, false);
   assert.equal(listButtons(reopened.get, 'lobbyProjectList').length, 0);
