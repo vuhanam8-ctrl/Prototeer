@@ -817,6 +817,9 @@
       async deleteBoard(token, publicId) {
         return requireClient().mutation(apiRoot.workspaces.deleteBoard, { publicId, token });
       },
+      async deleteProject(access) {
+        return requireClient().mutation(apiRoot.workspaces.deleteProject, access);
+      },
       async updateDraftBoard(access, boardId, world) {
         return requireClient().mutation(apiRoot.workspaces.updateDraftBoard, {
           ...access, sessionId: guest.sessionId, board: boardSnapshot(boardId, world),

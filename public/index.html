@@ -51,7 +51,10 @@
   <main class="project-hub-main">
     <div class="project-hub-heading">
       <h1 id="projectPageTitle" tabindex="-1"></h1>
-      <button id="projectInvite" type="button">Invite</button>
+      <div class="project-hub-actions">
+        <button id="projectInvite" type="button">Invite</button>
+        <button id="projectDelete" type="button" class="danger" hidden>Delete Project</button>
+      </div>
     </div>
     <div class="project-hub-heading project-board-heading">
       <h2 id="projectBoardHeading">Boards</h2>
@@ -102,6 +105,17 @@
     <div class="project-hub-actions">
       <button id="boardNameCancel" type="button">Cancel</button>
       <button id="boardNameSubmit" type="submit" class="primary">Create board</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="projectDeleteDialog" class="project-hub-dialog" aria-labelledby="projectDeleteTitle" data-analytics-region="dialog">
+  <h2 id="projectDeleteTitle">Delete project?</h2>
+  <p id="projectDeleteCopy"></p>
+  <form id="projectDeleteForm">
+    <p id="projectDeleteStatus" class="project-hub-status" role="status"></p>
+    <div class="project-hub-actions">
+      <button id="projectDeleteCancel" type="button" autofocus>Cancel</button>
+      <button id="projectDeleteSubmit" type="submit" class="danger">Delete Project</button>
     </div>
   </form>
 </dialog>

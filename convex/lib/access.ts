@@ -38,6 +38,10 @@ export async function requireAccess(
   }
   const tokenDigest = await digestToken(token);
   if (project.workspaceId) {
+    const workspace = await ctx.db.get(project.workspaceId);
+    if (!workspace || workspace.deletedAt !== undefined) {
+      throw new ConvexError({ code: "project_not_found" });
+    }
     const capability = await findWorkspaceCapability(ctx, tokenDigest);
     if (capability?.workspaceId === project.workspaceId && capability.revokedAt === undefined) {
       return { project, capability };

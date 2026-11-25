@@ -25,7 +25,7 @@ function findWorkspace(ctx: QueryCtx | MutationCtx, publicId: string) {
     .unique();
 }
 
-async function requireWorkspaceAccess(ctx: QueryCtx | MutationCtx, publicId: string, token: string) {
+async function requireWorkspaceAccess(ctx: QueryCtx | MutationCtx, publicId: string, token: string, includeDeleted = false) {
   if (!/^[A-Za-z0-9_-]{20,80}$/.test(publicId)) throw new ConvexError({ code: "project_not_found" });
   const tokenDigest = await digestToken(token);
   const [workspace, capability] = await Promise.all([
@@ -35,6 +35,7 @@ async function requireWorkspaceAccess(ctx: QueryCtx | MutationCtx, publicId: str
   if (!workspace || capability?.workspaceId !== workspace._id || capability.revokedAt !== undefined) {
     throw new ConvexError({ code: "access_denied" });
   }
+  if (!includeDeleted && workspace.deletedAt !== undefined) throw new ConvexError({ code: "workspace_deleted" });
   return { workspace, capability };
 }
 
@@ -199,6 +200,16 @@ export const renameBoard = mutation({
     const updated = await ctx.db.get(project._id);
     if (!updated) throw new ConvexError({ code: "project_not_found" });
     return boardInfo(updated);
+  },
+});
+
+export const deleteProject = mutation({
+  args: credentials,
+  handler: async (ctx, args) => {
+    const { workspace, capability } = await requireWorkspaceAccess(ctx, args.publicId, args.token, true);
+    requireOwner(capability.role);
+    if (workspace.deletedAt === undefined) await ctx.db.patch(workspace._id, { deletedAt: Date.now() });
+    return { deleted: true };
   },
 });
 

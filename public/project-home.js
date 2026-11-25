@@ -148,7 +148,7 @@
       const local = records(localPrefix);
       const shared = records(sharedPrefix);
       const sharedIds = new Set(shared.map(entry => entry.publicId));
-      for (const entry of [...local.filter(entry => !sharedIds.has(entry.sharedId)), ...shared]
+      for (const entry of [...local.filter(entry => !sharedIds.has(entry.sharedId)), ...shared].filter(entry => !entry.deleted)
         .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))) {
         buttonRow(list, entry.name, exclusive('lobbyStatus', () => openProject(entry)));
       }
@@ -196,6 +196,7 @@
       $('projectPageTitle').textContent = project.name;
       $('projectAddBoard').hidden = project.role === 'viewer';
       $('projectInvite').hidden = project.role !== 'owner';
+      $('projectDelete').hidden = project.role !== 'owner';
       $('projectBoardsEmpty').hidden = project.boards.length > 0;
       const list = $('projectBoardList');
       list.replaceChildren();
@@ -258,11 +259,24 @@
     }
 
     async function openProject(entry, boardId) {
+      if (entry.deleted || (!entry.shared && stored(localPrefix + entry.publicId)?.deleted)) {
+        throw new Error('This project was deleted.');
+      }
       stopWatching();
       pendingBoard = null;
       if (entry.shared) {
         await selectDeployment(entry.backend);
-        const current = await online.open(accessOf(entry));
+        let current;
+        try { current = await online.open(accessOf(entry)); }
+        catch (error) {
+          if (error?.data?.code === 'workspace_deleted') {
+            rememberShared({ publicId: entry.publicId, role: 'owner', deleted: true });
+            await showLobby();
+            status('lobbyStatus', 'This project was deleted.');
+            return;
+          }
+          throw error;
+        }
         entry = { ...entry, ...current, backend: online.url(), updatedAt: Date.now() };
         rememberShared(entry);
       }
@@ -475,6 +489,29 @@
       boardFeedback('Deleted board “' + board.name + '”.');
     }
 
+    async function confirmProjectDelete() {
+      if (project?.role !== 'owner') return;
+      const entry = project;
+      if (entry.shared) {
+        await online.deleteProject(accessOf(entry));
+        rememberShared({ publicId: entry.publicId, role: 'owner', deleted: true });
+      } else {
+        const latest = stored(localPrefix + entry.publicId) ?? entry;
+        if (latest.upload) {
+          await selectDeployment(latest.upload.backend);
+          try { await online.deleteProject(accessOf(latest.upload)); }
+          catch (error) { if (error?.data?.code !== 'access_denied') throw error; }
+        }
+        for (const board of latest.boards) await deleteBoard(board);
+        rememberLocal({ ...project, deleted: true });
+      }
+      $('projectDeleteDialog').close();
+      await showLobby();
+      const message = 'Deleted project “' + entry.name + '”.';
+      status('lobbyStatus', message);
+      toast(message);
+    }
+
     async function publishProject() {
       const entry = stored(localPrefix + project.publicId) ?? project;
       if (!entry.boards.length) throw new Error('Add a board before inviting someone.');
@@ -613,7 +650,14 @@
     $('projectBackToLobby').onclick = exclusive('projectPageStatus', showFront);
     $('editorBackToProject').onclick = exclusive('projectPageStatus', returnToProject);
     $('editorAddBoard').onclick = () => showBoardNameDialog(null, true);
-    for (const [prefix, action] of [['boardName', saveBoardName], ['boardDelete', confirmBoardDelete]]) {
+    $('projectDelete').onclick = () => {
+      if (project?.role !== 'owner') return;
+      $('projectDeleteCopy').textContent = 'Delete “' + project.name + '” and all its boards?' +
+        (project.shared ? ' Its invite links will stop working.' : '');
+      status('projectDeleteStatus');
+      $('projectDeleteDialog').showModal();
+    };
+    for (const [prefix, action] of [['boardName', saveBoardName], ['boardDelete', confirmBoardDelete], ['projectDelete', confirmProjectDelete]]) {
       const dialog = $(prefix + 'Dialog');
       $(prefix + 'Cancel').onclick = () => { if (!busy) dialog.close(); };
       dialog.oncancel = event => { if (busy) event.preventDefault(); };

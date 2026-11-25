@@ -99,6 +99,18 @@ test('a named project opens Board 1 and independently saves its boards in the of
   await reopened.get('boardDeleteForm').onsubmit({ preventDefault() {} });
   assert.equal(reopened.get('projectBoardsEmpty').hidden, false);
   assert.equal(reopened.get('projectPageTitle').textContent, 'Enemy patrol');
+  reopened.get('projectAddBoard').click();
+  await reopened.get('boardNameForm').onsubmit({ preventDefault() {} });
+  const remainingBoard = JSON.parse(localStorage.getItem(manifestKey)).boards[0].publicId;
+  reopened.get('projectDelete').click();
+  assert.match(reopened.get('projectDeleteCopy').textContent, /Enemy patrol.*all its boards/);
+  reopened.get('projectDeleteCancel').click();
+  assert.equal(reopened.get('projectPage').hidden, false);
+  reopened.get('projectDelete').click();
+  await reopened.get('projectDeleteForm').onsubmit({ preventDefault() {} });
+  assert.equal(reopened.get('projectLobby').hidden, false);
+  assert.equal(listButtons(reopened.get, 'lobbyProjectList').length, 0);
+  await assert.rejects(createProjectStore(indexedDB, validWorld, MAX_BYTES).request('projects/'+remainingBoard), /not found/);
 });
 
 test('a fresh viewer opens every board from a project invite without editor controls', async () => {
@@ -180,6 +192,7 @@ test('a fresh viewer opens every board from a project invite without editor cont
   assert.deepEqual(viewerBoards.map(button => button.textContent), ['Board 1', 'Board 2']);
   assert.equal(viewer.get('projectAddBoard').hidden, true);
   assert.equal(viewer.get('projectInvite').hidden, true);
+  assert.equal(viewer.get('projectDelete').hidden, true);
   await viewerBoards[1].onclick();
   assert.equal(viewer.get('editorShell').hidden, false);
   assert.equal(viewer.editor.world().name, 'Board 2');

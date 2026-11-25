@@ -10,6 +10,7 @@ export default defineSchema({
     name: v.string(),
     createdAt: v.number(),
     publishedAt: v.optional(v.number()),
+    deletedAt: v.optional(v.number()),
   }).index("by_public_id", ["publicId"]),
 
   workspaceCapabilities: defineTable({
